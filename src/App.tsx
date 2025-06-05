@@ -1,12 +1,14 @@
 import React from 'react';
-import {Button, Card, Col, Input, Menu, MenuProps, message, Row, Space, Typography, Upload, UploadFile, Layout} from "antd";
-import {CopyOutlined, UploadOutlined} from "@ant-design/icons";
+import {Button, Card, Col, Input, Menu, MenuProps, message, Row, Space, Typography, Upload, UploadFile, Layout, List} from "antd";
+import {CopyOutlined, UploadOutlined, DownloadOutlined} from "@ant-design/icons";
 import ThemeToggle from './theme/ThemeToggle';
 import {useAppDispatch, useAppSelector} from "./store/hooks";
 import {startPeer, stopPeerSession} from "./store/peer/peerActions";
 import * as connectionAction from "./store/connection/connectionActions"
 import {DataType, PeerConnection} from "./helpers/peer";
 import {useAsyncState} from "./helpers/hooks";
+import download from "js-file-download";
+import {ReceivedFile} from "./store/connection/connectionTypes";
 
 const {Title} = Typography
 type MenuItem = Required<MenuProps>['items'][number]
@@ -31,6 +33,7 @@ export const App: React.FC = () => {
 
     const peer = useAppSelector((state) => state.peer)
     const connection = useAppSelector((state) => state.connection)
+    const receivedFiles = connection.receivedFiles
     const dispatch = useAppDispatch()
 
     const handleStartSession = () => {
@@ -76,6 +79,10 @@ export const App: React.FC = () => {
             console.log(err)
             message.error("Error when sending file")
         }
+    }
+
+    const handleDownload = (file: ReceivedFile) => {
+        download(file.file, file.fileName, file.fileType)
     }
 
     return (
@@ -144,8 +151,27 @@ export const App: React.FC = () => {
                                     loading={sendLoading}
                                     style={{marginTop: 16}}
                                 >
-                                    {sendLoading ? 'Sending' : 'Send'}
+                                {sendLoading ? 'Sending' : 'Send'}
                                 </Button>
+                            </Card>
+                            <Card title="Received Files" style={{marginTop: 16}}>
+                                {
+                                    receivedFiles.length === 0
+                                        ? <div>No file received</div>
+                                        : <List
+                                            dataSource={receivedFiles}
+                                            renderItem={(item: ReceivedFile) => (
+                                                <List.Item
+                                                    actions={[<Button icon={<DownloadOutlined/>} onClick={() => handleDownload(item)}>Download</Button>]}
+                                                >
+                                                    <List.Item.Meta
+                                                        title={item.fileName}
+                                                        description={`from ${item.from}`}
+                                                    />
+                                                </List.Item>
+                                            )}
+                                        />
+                                }
                             </Card>
                         </div>
                     </Card>

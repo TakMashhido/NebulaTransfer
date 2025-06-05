@@ -5,7 +5,8 @@ export const initialState: ConnectionState = {
     id: undefined,
     loading: false,
     list: [],
-    selectedId: undefined
+    selectedId: undefined,
+    receivedFiles: []
 }
 
 export const ConnectionReducer: Reducer<ConnectionState> = (state = initialState, action) => {
@@ -33,6 +34,9 @@ export const ConnectionReducer: Reducer<ConnectionState> = (state = initialState
         return {...state, list: newList}
     } else if (action.type === ConnectionActionType.CONNECTION_ITEM_SELECT) {
         return {...state, selectedId: action.id}
+    } else if (action.type === ConnectionActionType.RECEIVED_FILE_ADD) {
+        const {file} = action
+        return {...state, receivedFiles: [...state.receivedFiles, file]}
     } else {
         return state
     }
