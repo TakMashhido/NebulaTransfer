@@ -140,7 +140,7 @@ export const PeerConnection = {
     ) => {
         const total = Math.ceil(file.size / chunkSize)
         const pin = Math.floor(100000 + Math.random() * 900000).toString()
-        message.info(`PIN for transfer: ${pin}`)
+        const hidePin = message.info(`PIN for transfer: ${pin}`, 0)
         await PeerConnection.sendConnection(id, {
             dataType: DataType.FILE_REQUEST,
             fileName: file.name,
@@ -163,6 +163,7 @@ export const PeerConnection = {
             }
             conn.on('data', handler)
         })
+        hidePin()
         if (!accepted) throw new Error('Transfer rejected')
 
         const start = Date.now()
