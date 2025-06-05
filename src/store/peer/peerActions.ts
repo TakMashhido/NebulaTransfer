@@ -2,7 +2,7 @@ import {PeerActionType} from "./peerTypes";
 import {Dispatch} from "redux";
 import {DataType, PeerConnection} from "../../helpers/peer";
 import {message} from "antd";
-import {addConnectionList, removeConnectionList, addReceivedFile, updateFileProgress, markFileReady} from "../connection/connectionActions";
+import {addConnectionList, removeConnectionList, addReceivedFile, updateFileProgress, markFileReady, setFileStart} from "../connection/connectionActions";
 import {cacheChunk} from "../../helpers/fileCache";
 
 export const startPeerSession = (id: string) => ({
@@ -53,14 +53,17 @@ export const startPeer: () => (dispatch: Dispatch, getState: () => any) => Promi
                             size,
                             chunks: total,
                             received: 0,
-                            ready: false,
-                            startTime: Date.now()
+                            ready: false
                         }
                         dispatch(addReceivedFile(received))
                     } else {
                         message.error('Invalid PIN')
                         PeerConnection.sendConnection(peerId, {dataType: DataType.PIN_REJECT})
                     }
+                } else if (data.dataType === DataType.FILE_META && data.message) {
+                    const meta = JSON.parse(data.message)
+                    const fileId = `${peerId}-${data.fileName}`
+                    dispatch(setFileStart(fileId, meta.start))
                 } else if (data.dataType === DataType.FILE_CHUNK && data.chunk !== undefined && data.index !== undefined) {
                     const fileId = `${peerId}-${data.fileName}`
                     await cacheChunk(fileId, data.index, data.chunk)
@@ -78,8 +81,7 @@ export const startPeer: () => (dispatch: Dispatch, getState: () => any) => Promi
                         size: data.file.size,
                         chunks: 1,
                         received: 1,
-                        ready: true,
-                        startTime: Date.now()
+                        ready: true
                     }
                     dispatch(addReceivedFile(received))
                     await cacheChunk(fileId, 0, await data.file.arrayBuffer())

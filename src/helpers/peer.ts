@@ -167,6 +167,13 @@ export const PeerConnection = {
         if (!accepted) throw new Error('Transfer rejected')
 
         const start = Date.now()
+        await PeerConnection.sendConnection(id, {
+            dataType: DataType.FILE_META,
+            fileName: file.name,
+            fileType: file.type,
+            total,
+            message: JSON.stringify({start})
+        })
         for (let i = 0; i < total; i++) {
             const chunk = await file.slice(i * chunkSize, (i + 1) * chunkSize).arrayBuffer()
             await PeerConnection.sendConnection(id, {
