@@ -123,7 +123,7 @@ export const App: React.FC = () => {
                                            onChange={e => dispatch(connectionAction.changeConnectionInput(e.target.value))}
                                            required={true}
                                            />
-                                    <Button onClick={handleConnectOtherPeer}
+                                    <Button onClick={() => handleConnectOtherPeer()}
                                             loading={connection.loading}>Connect</Button>
                                     <Button onClick={() => setScanOpen(true)}>Scan</Button>
                                 </Space>
