@@ -1,13 +1,15 @@
 import Peer, {DataConnection, PeerErrorType, PeerError} from "peerjs";
 import {message} from "antd";
-import {encryptArrayBuffer, decryptArrayBuffer} from './encryption'
 
 export enum DataType {
     FILE = 'FILE',
     OTHER = 'OTHER',
     FILE_META = 'FILE_META',
     FILE_CHUNK = 'FILE_CHUNK',
-    FILE_COMPLETE = 'FILE_COMPLETE'
+    FILE_COMPLETE = 'FILE_COMPLETE',
+    FILE_REQUEST = 'FILE_REQUEST',
+    PIN_ACCEPT = 'PIN_ACCEPT',
+    PIN_REJECT = 'PIN_REJECT'
 
 }
 export interface Data {
@@ -130,33 +132,62 @@ export const PeerConnection = {
             reject(err)
         }
     }),
-    sendLargeFile: async (id: string, file: File, key: CryptoKey, chunkSize = 4 * 1024 * 1024) => {
+    sendFileWithPin: async (
+        id: string,
+        file: File,
+        onProgress?: (sent: number, total: number, speed: number, remaining: number) => void,
+        chunkSize = 4 * 1024 * 1024
+    ) => {
         const total = Math.ceil(file.size / chunkSize)
+        const pin = Math.floor(100000 + Math.random() * 900000).toString()
+        message.info(`PIN for transfer: ${pin}`)
         await PeerConnection.sendConnection(id, {
-            dataType: DataType.FILE_META,
+            dataType: DataType.FILE_REQUEST,
             fileName: file.name,
             fileType: file.type,
             total,
-            message: `${file.size}`
+            message: JSON.stringify({size: file.size, pin})
         })
+        const accepted = await new Promise<boolean>((resolve) => {
+            const conn = connectionMap.get(id)
+            if (!conn) {resolve(false); return}
+            const handler = (receivedData: any) => {
+                const d = receivedData as Data
+                if (d.dataType === DataType.PIN_ACCEPT) {
+                    conn.off('data', handler)
+                    resolve(d.message === pin)
+                } else if (d.dataType === DataType.PIN_REJECT) {
+                    conn.off('data', handler)
+                    resolve(false)
+                }
+            }
+            conn.on('data', handler)
+        })
+        if (!accepted) throw new Error('Transfer rejected')
+
+        const start = Date.now()
         for (let i = 0; i < total; i++) {
             const chunk = await file.slice(i * chunkSize, (i + 1) * chunkSize).arrayBuffer()
-            const encrypted = await encryptArrayBuffer(chunk, key)
             await PeerConnection.sendConnection(id, {
                 dataType: DataType.FILE_CHUNK,
-                chunk: encrypted,
+                chunk,
                 index: i,
                 total,
                 fileName: file.name,
                 fileType: file.type
             })
+            const sent = Math.min((i + 1) * chunkSize, file.size)
+            const elapsed = (Date.now() - start) / 1000
+            const speed = sent / elapsed
+            const remaining = (file.size - sent) / speed
+            onProgress && onProgress(sent, file.size, speed, remaining)
         }
         await PeerConnection.sendConnection(id, {
             dataType: DataType.FILE_COMPLETE,
             fileName: file.name
         })
     },
-    onConnectionReceiveData: (id: string, key: CryptoKey, callback: (f: Data) => void) => {
+    onConnectionReceiveData: (id: string, callback: (f: Data) => void) => {
         if (!peer) {
             throw new Error("Peer doesn't start yet")
         }
@@ -165,13 +196,9 @@ export const PeerConnection = {
         }
         let conn = connectionMap.get(id)
         if (conn) {
-            conn.on('data', async function (receivedData) {
+            conn.on('data', function (receivedData) {
                 console.log("Receiving data from " + id)
-                let data = receivedData as Data
-                if (data.dataType === DataType.FILE_CHUNK && data.chunk) {
-                    const decrypted = await decryptArrayBuffer(data.chunk, key)
-                    data = {...data, chunk: decrypted}
-                }
+                const data = receivedData as Data
                 callback(data)
             })
         }
