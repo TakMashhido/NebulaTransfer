@@ -2,8 +2,7 @@ import {PeerActionType} from "./peerTypes";
 import {Dispatch} from "redux";
 import {DataType, PeerConnection} from "../../helpers/peer";
 import {message} from "antd";
-import {addConnectionList, removeConnectionList} from "../connection/connectionActions";
-import download from "js-file-download";
+import {addConnectionList, removeConnectionList, addReceivedFile} from "../connection/connectionActions";
 
 export const startPeerSession = (id: string) => ({
     type: PeerActionType.PEER_SESSION_START, id
@@ -31,8 +30,14 @@ export const startPeer: () => (dispatch: Dispatch) => Promise<void>
             })
             PeerConnection.onConnectionReceiveData(peerId, (file) => {
                 message.info("Receiving file " + file.fileName + " from " + peerId)
-                if (file.dataType === DataType.FILE) {
-                    download(file.file || '', file.fileName || "fileName", file.fileType)
+                if (file.dataType === DataType.FILE && file.file) {
+                    const received = {
+                        from: peerId,
+                        file: file.file,
+                        fileName: file.fileName || 'fileName',
+                        fileType: file.fileType || ''
+                    }
+                    dispatch(addReceivedFile(received))
                 }
             })
         })
