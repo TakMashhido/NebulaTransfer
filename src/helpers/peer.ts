@@ -3,12 +3,18 @@ import {message} from "antd";
 
 export enum DataType {
     FILE = 'FILE',
-    OTHER = 'OTHER'
+    OTHER = 'OTHER',
+    FILE_META = 'FILE_META',
+    FILE_CHUNK = 'FILE_CHUNK',
+    FILE_COMPLETE = 'FILE_COMPLETE'
 
 }
 export interface Data {
     dataType: DataType
     file?: Blob
+    chunk?: ArrayBuffer
+    index?: number
+    total?: number
     fileName?: string
     fileType?: string
     message?: string
@@ -123,6 +129,31 @@ export const PeerConnection = {
             reject(err)
         }
     }),
+    sendLargeFile: async (id: string, file: File, chunkSize = 1024 * 1024) => {
+        const total = Math.ceil(file.size / chunkSize)
+        await PeerConnection.sendConnection(id, {
+            dataType: DataType.FILE_META,
+            fileName: file.name,
+            fileType: file.type,
+            total,
+            message: `${file.size}`
+        })
+        for (let i = 0; i < total; i++) {
+            const chunk = await file.slice(i * chunkSize, (i + 1) * chunkSize).arrayBuffer()
+            await PeerConnection.sendConnection(id, {
+                dataType: DataType.FILE_CHUNK,
+                chunk,
+                index: i,
+                total,
+                fileName: file.name,
+                fileType: file.type
+            })
+        }
+        await PeerConnection.sendConnection(id, {
+            dataType: DataType.FILE_COMPLETE,
+            fileName: file.name
+        })
+    },
     onConnectionReceiveData: (id: string, callback: (f: Data) => void) => {
         if (!peer) {
             throw new Error("Peer doesn't start yet")

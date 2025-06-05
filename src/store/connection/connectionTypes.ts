@@ -4,7 +4,9 @@ export enum ConnectionActionType {
     CONNECTION_LIST_ADD = 'CONNECTION_LIST_ADD',
     CONNECTION_LIST_REMOVE = 'CONNECTION_LIST_REMOVE',
     CONNECTION_ITEM_SELECT = 'CONNECTION_ITEM_SELECT',
-    RECEIVED_FILE_ADD = 'RECEIVED_FILE_ADD'
+    RECEIVED_FILE_ADD = 'RECEIVED_FILE_ADD',
+    RECEIVED_FILE_PROGRESS = 'RECEIVED_FILE_PROGRESS',
+    RECEIVED_FILE_READY = 'RECEIVED_FILE_READY'
 }
 
 export interface ConnectionState {
@@ -16,8 +18,12 @@ export interface ConnectionState {
 }
 
 export interface ReceivedFile {
+    readonly id: string
     readonly from: string
-    readonly file: Blob
     readonly fileName: string
     readonly fileType: string
+    readonly size: number
+    readonly chunks: number
+    readonly received: number
+    readonly ready: boolean
 }
