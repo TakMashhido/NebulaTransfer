@@ -4,6 +4,7 @@ import {DataType, PeerConnection} from "../../helpers/peer";
 import {message} from "antd";
 import {addConnectionList, removeConnectionList, addReceivedFile, updateFileProgress, markFileReady} from "../connection/connectionActions";
 import {cacheChunk} from "../../helpers/fileCache";
+import {deriveKey} from "../../helpers/encryption";
 
 export const startPeerSession = (id: string) => ({
     type: PeerActionType.PEER_SESSION_START, id
@@ -16,12 +17,17 @@ export const setLoading = (loading: boolean) => ({
     type: PeerActionType.PEER_LOADING, loading
 })
 
-export const startPeer: () => (dispatch: Dispatch) => Promise<void>
-    = () => (async (dispatch) => {
+export const setSecret = (secret: string) => ({
+    type: PeerActionType.PEER_SET_SECRET, secret
+})
+
+export const startPeer: () => (dispatch: Dispatch, getState: () => any) => Promise<void>
+    = () => (async (dispatch, getState) => {
     dispatch(setLoading(true))
     try {
         const id = await PeerConnection.startPeerSession()
-        PeerConnection.onIncomingConnection((conn) => {
+        const secret = getState().peer.secret
+        PeerConnection.onIncomingConnection(async (conn) => {
             const peerId = conn.peer
             message.info("Incoming connection: " + peerId)
             dispatch(addConnectionList(peerId))
@@ -29,7 +35,8 @@ export const startPeer: () => (dispatch: Dispatch) => Promise<void>
                 message.info("Connection closed: " + peerId)
                 dispatch(removeConnectionList(peerId))
             })
-            PeerConnection.onConnectionReceiveData(peerId, async (data) => {
+            const key = await deriveKey(secret)
+            PeerConnection.onConnectionReceiveData(peerId, key, async (data) => {
                 if (data.dataType === DataType.FILE_META) {
                     const total = data.total || 0
                     const size = Number(data.message || '0')
