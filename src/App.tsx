@@ -49,8 +49,9 @@ export const App: React.FC = () => {
         dispatch(stopPeerSession())
     }
 
-    const handleConnectOtherPeer = () => {
-        connection.id != null ? dispatch(connectionAction.connectPeer(connection.id || "")) : message.warning("Please enter ID")
+    const handleConnectOtherPeer = (targetId?: string) => {
+        const id = targetId ?? connection.id
+        id ? dispatch(connectionAction.connectPeer(id)) : message.warning("Please enter ID")
     }
 
     const [fileList, setFileList] = useAsyncState([] as UploadFile[])
@@ -74,10 +75,10 @@ export const App: React.FC = () => {
             })
             await setSendLoading(false)
             message.info("Send file successfully")
-        } catch (err) {
+        } catch (err: any) {
             await setSendLoading(false)
             console.log(err)
-            message.error("Error when sending file")
+            message.error(err?.message || "Error when sending file")
         }
     }
 
@@ -130,12 +131,14 @@ export const App: React.FC = () => {
                                     <div style={{marginTop: 16}}>
                                         <QrScanner
                                             delay={300}
+                                            facingMode="front"
                                             onError={() => setScanOpen(false)}
                                             onScan={(data: any) => {
                                                 if (data) {
-                                                    dispatch(connectionAction.changeConnectionInput(data.text))
+                                                    const scanned = data.text
+                                                    dispatch(connectionAction.changeConnectionInput(scanned))
                                                     setScanOpen(false)
-                                                    handleConnectOtherPeer()
+                                                    handleConnectOtherPeer(scanned)
                                                 }
                                             }}
                                             style={{width: '100%'}}
