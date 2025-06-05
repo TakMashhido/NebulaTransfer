@@ -45,6 +45,10 @@ export const ConnectionReducer: Reducer<ConnectionState> = (state = initialState
         const {id} = action
         const receivedFiles = state.receivedFiles.map(f => f.id === id ? {...f, ready: true} : f)
         return {...state, receivedFiles}
+    } else if (action.type === ConnectionActionType.RECEIVED_FILE_START) {
+        const {id, start} = action
+        const receivedFiles = state.receivedFiles.map(f => f.id === id ? {...f, startTime: start} : f)
+        return {...state, receivedFiles}
     } else {
         return state
     }
