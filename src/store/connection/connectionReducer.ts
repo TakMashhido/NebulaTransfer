@@ -37,6 +37,14 @@ export const ConnectionReducer: Reducer<ConnectionState> = (state = initialState
     } else if (action.type === ConnectionActionType.RECEIVED_FILE_ADD) {
         const {file} = action
         return {...state, receivedFiles: [...state.receivedFiles, file]}
+    } else if (action.type === ConnectionActionType.RECEIVED_FILE_PROGRESS) {
+        const {id, received} = action
+        const receivedFiles = state.receivedFiles.map(f => f.id === id ? {...f, received} : f)
+        return {...state, receivedFiles}
+    } else if (action.type === ConnectionActionType.RECEIVED_FILE_READY) {
+        const {id} = action
+        const receivedFiles = state.receivedFiles.map(f => f.id === id ? {...f, ready: true} : f)
+        return {...state, receivedFiles}
     } else {
         return state
     }
