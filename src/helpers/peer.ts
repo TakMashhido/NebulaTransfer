@@ -111,18 +111,17 @@ export const PeerConnection = {
         }
     },
     sendConnection: (id: string, data: Data): Promise<void> => new Promise((resolve, reject) => {
-        if (!connectionMap.has(id)) {
+        const conn = connectionMap.get(id);
+        if (!conn || !conn.open) {
             reject(new Error("Connection didn't exist"))
+            return
         }
         try {
-            let conn = connectionMap.get(id);
-            if (conn) {
-                conn.send(data)
-            }
+            conn.send(data)
+            resolve()
         } catch (err) {
             reject(err)
         }
-        resolve()
     }),
     onConnectionReceiveData: (id: string, callback: (f: Data) => void) => {
         if (!peer) {
