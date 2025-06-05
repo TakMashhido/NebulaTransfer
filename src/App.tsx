@@ -81,14 +81,14 @@ export const App: React.FC = () => {
     return (
         <Layout style={{minHeight: '100vh'}}>
             <Layout.Header style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <Title level={3} style={{color: '#fff', margin: 0}}>P2P File Transfer</Title>
+                <Title level={3} style={{color: '#fff', margin: 0}}>NebulaTransfer</Title>
                 <ThemeToggle/>
             </Layout.Header>
             <Layout.Content style={{padding: 24}}>
                 <Row justify={"center"} align={"top"}>
                     <Col xs={24} sm={24} md={20} lg={16} xl={12}>
                         <Card>
-                            <Title level={2} style={{textAlign: "center"}}>P2P File Transfer</Title>
+                            <Title level={2} style={{textAlign: "center"}}>NebulaTransfer</Title>
                         <Card hidden={peer.started}>
                             <Button onClick={handleStartSession} loading={peer.loading}>Start</Button>
                         </Card>
