@@ -3,6 +3,7 @@ import {Dispatch} from "redux";
 import {DataType, PeerConnection} from "../../helpers/peer";
 import {message} from "antd";
 import {cacheChunk} from "../../helpers/fileCache";
+import {deriveKey} from "../../helpers/encryption";
 
 export const changeConnectionInput = (id: string) => ({
     type: ConnectionActionType.CONNECTION_INPUT_CHANGE, id
@@ -35,8 +36,8 @@ export const markFileReady = (id: string) => ({
     type: ConnectionActionType.RECEIVED_FILE_READY, id
 })
 
-export const connectPeer: (id: string) => (dispatch: Dispatch) => Promise<void>
-    = (id: string) => (async (dispatch) => {
+export const connectPeer: (id: string) => (dispatch: Dispatch, getState: () => any) => Promise<void>
+    = (id: string) => (async (dispatch, getState) => {
     dispatch(setLoading(true))
     try {
         await PeerConnection.connectPeer(id)
@@ -44,7 +45,9 @@ export const connectPeer: (id: string) => (dispatch: Dispatch) => Promise<void>
             message.info("Connection closed: " + id)
             dispatch(removeConnectionList(id))
         })
-        PeerConnection.onConnectionReceiveData(id, async (data) => {
+        const secret = getState().peer.secret
+        const key = await deriveKey(secret)
+        PeerConnection.onConnectionReceiveData(id, key, async (data) => {
             if (data.dataType === DataType.FILE_META) {
                 const total = data.total || 0
                 const size = Number(data.message || '0')
