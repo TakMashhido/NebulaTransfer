@@ -2,7 +2,8 @@ import {PeerActionType} from "./peerTypes";
 import {Dispatch} from "redux";
 import {DataType, PeerConnection} from "../../helpers/peer";
 import {message} from "antd";
-import {addConnectionList, removeConnectionList, addReceivedFile} from "../connection/connectionActions";
+import {addConnectionList, removeConnectionList, addReceivedFile, updateFileProgress, markFileReady} from "../connection/connectionActions";
+import {cacheChunk} from "../../helpers/fileCache";
 
 export const startPeerSession = (id: string) => ({
     type: PeerActionType.PEER_SESSION_START, id
@@ -28,16 +29,43 @@ export const startPeer: () => (dispatch: Dispatch) => Promise<void>
                 message.info("Connection closed: " + peerId)
                 dispatch(removeConnectionList(peerId))
             })
-            PeerConnection.onConnectionReceiveData(peerId, (file) => {
-                message.info("Receiving file " + file.fileName + " from " + peerId)
-                if (file.dataType === DataType.FILE && file.file) {
+            PeerConnection.onConnectionReceiveData(peerId, async (data) => {
+                if (data.dataType === DataType.FILE_META) {
+                    const total = data.total || 0
+                    const size = Number(data.message || '0')
+                    const fileId = `${peerId}-${data.fileName}`
                     const received = {
+                        id: fileId,
                         from: peerId,
-                        file: file.file,
-                        fileName: file.fileName || 'fileName',
-                        fileType: file.fileType || ''
+                        fileName: data.fileName || 'fileName',
+                        fileType: data.fileType || '',
+                        size,
+                        chunks: total,
+                        received: 0,
+                        ready: false
                     }
                     dispatch(addReceivedFile(received))
+                } else if (data.dataType === DataType.FILE_CHUNK && data.chunk !== undefined && data.index !== undefined) {
+                    const fileId = `${peerId}-${data.fileName}`
+                    await cacheChunk(fileId, data.index, data.chunk)
+                    dispatch(updateFileProgress(fileId, data.index + 1))
+                } else if (data.dataType === DataType.FILE_COMPLETE) {
+                    const fileId = `${peerId}-${data.fileName}`
+                    dispatch(markFileReady(fileId))
+                } else if (data.dataType === DataType.FILE && data.file) {
+                    const fileId = `${peerId}-${data.fileName}`
+                    const received = {
+                        id: fileId,
+                        from: peerId,
+                        fileName: data.fileName || 'fileName',
+                        fileType: data.fileType || '',
+                        size: data.file.size,
+                        chunks: 1,
+                        received: 1,
+                        ready: true
+                    }
+                    dispatch(addReceivedFile(received))
+                    await cacheChunk(fileId, 0, await data.file.arrayBuffer())
                 }
             })
         })
