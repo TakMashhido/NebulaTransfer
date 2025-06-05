@@ -1,15 +1,16 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {Button, Card, Col, Input, Menu, MenuProps, message, Row, Space, Typography, Upload, UploadFile, Layout, List} from "antd";
-import {CopyOutlined, UploadOutlined, DownloadOutlined} from "@ant-design/icons";
+import {CopyOutlined, UploadOutlined} from "@ant-design/icons";
 import ThemeToggle from './theme/ThemeToggle';
 import {useAppDispatch, useAppSelector} from "./store/hooks";
 import {startPeer, stopPeerSession} from "./store/peer/peerActions";
 import * as connectionAction from "./store/connection/connectionActions"
-import {DataType, PeerConnection} from "./helpers/peer";
+import {PeerConnection} from "./helpers/peer";
 import {assembleFile} from "./helpers/fileCache";
 import {useAsyncState} from "./helpers/hooks";
 import download from "js-file-download";
 import {ReceivedFile} from "./store/connection/connectionTypes";
+import {formatSpeed} from "./helpers/format";
 import { QRCodeSVG } from 'qrcode.react';
 import QrScanner from 'react-qr-scanner';
 
@@ -57,6 +58,7 @@ export const App: React.FC = () => {
     const [fileList, setFileList] = useAsyncState([] as UploadFile[])
     const [sendLoading, setSendLoading] = useAsyncState(false)
     const [sendInfo, setSendInfo] = useState<{sent:number,total:number,speed:number,remaining:number} | null>(null)
+    const downloadedRef = useRef<Set<string>>(new Set())
 
     const handleUpload = async () => {
         if (fileList.length === 0) {
@@ -87,8 +89,17 @@ export const App: React.FC = () => {
         download(blob, file.fileName, file.fileType)
     }
 
+    useEffect(() => {
+        receivedFiles.forEach(f => {
+            if (f.ready && !downloadedRef.current.has(f.id)) {
+                downloadedRef.current.add(f.id)
+                handleDownload(f)
+            }
+        })
+    }, [receivedFiles])
+
     return (
-        <Layout style={{minHeight: '100vh'}}>
+        <Layout style={{minHeight: '100vh', background: 'linear-gradient(135deg, #0f0c29, #302b63, #24243e)'}}>
             <Layout.Header style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <Title level={3} style={{color: '#fff', margin: 0}}>NebulaTransfer</Title>
                 <ThemeToggle/>
@@ -96,14 +107,14 @@ export const App: React.FC = () => {
             <Layout.Content style={{padding: 24}}>
                 <Row justify={"center"} align={"top"}>
                     <Col xs={24} sm={24} md={20} lg={16} xl={12}>
-                        <Card>
+                        <Card style={{borderRadius:16, background:'rgba(255,255,255,0.1)', backdropFilter:'blur(10px)', border:'1px solid rgba(255,255,255,0.2)'}}>
                             <Title level={2} style={{textAlign: "center"}}>NebulaTransfer</Title>
-                        <Card hidden={peer.started}>
+                        <Card hidden={peer.started} style={{marginTop:16, borderRadius:12}}>
                             <Space direction="vertical">
                                 <Button onClick={handleStartSession} loading={peer.loading}>Start</Button>
                             </Space>
                         </Card>
-                        <Card hidden={!peer.started}>
+                        <Card hidden={!peer.started} style={{marginTop:16, borderRadius:12}}>
                             <Space direction="vertical">
                                 <Space direction="horizontal">
                                     <div>ID: {peer.id}</div>
@@ -117,7 +128,7 @@ export const App: React.FC = () => {
                             </Space>
                         </Card>
                         <div hidden={!peer.started}>
-                            <Card>
+                            <Card style={{marginTop:16, borderRadius:12}}>
                                 <Space direction="horizontal">
                                     <Input placeholder={"ID"}
                                            onChange={e => dispatch(connectionAction.changeConnectionInput(e.target.value))}
@@ -147,7 +158,7 @@ export const App: React.FC = () => {
                                 )}
                             </Card>
 
-                            <Card title="Connection">
+                            <Card title="Connection" style={{marginTop:16, borderRadius:12}}>
                                 {
                                     connection.list.length === 0
                                         ? <div>Waiting for connection ...</div>
@@ -160,7 +171,7 @@ export const App: React.FC = () => {
                                 }
 
                             </Card>
-                            <Card title="Send File">
+                            <Card title="Send File" style={{marginTop:16, borderRadius:12}}>
                                 <Upload fileList={fileList}
                                         maxCount={1}
                                         onRemove={() => setFileList([])}
@@ -182,35 +193,31 @@ export const App: React.FC = () => {
                                 {sendInfo &&
                                     <div style={{marginTop: 8}}>
                                         <progress max={sendInfo.total} value={sendInfo.sent} style={{width:'100%'}}></progress>
-                                        <div>Speed: {sendInfo.speed.toFixed(2)} B/s, Remaining: {sendInfo.remaining.toFixed(1)}s</div>
+                                        <div style={{fontSize:12,marginTop:4}}>Speed: {formatSpeed(sendInfo.speed)}, Remaining: {sendInfo.remaining.toFixed(1)}s</div>
                                     </div>
                                 }
                             </Card>
-                            <Card title="Received Files" style={{marginTop: 16}}>
+                            <Card title="Received Files" style={{marginTop:16, borderRadius:12}}>
                                 {
                                     receivedFiles.length === 0
                                         ? <div>No file received</div>
                                         : <List
                                             dataSource={receivedFiles}
                                             renderItem={(item: ReceivedFile) => (
-                                                <List.Item
-                                                    actions={[<Button icon={<DownloadOutlined/>}
-                                                                     disabled={!item.ready}
-                                                                     onClick={() => handleDownload(item)}>Download</Button>]}
-                                                >
+                                                <List.Item>
                                                     <List.Item.Meta
                                                         title={item.fileName}
                                                         description={`from ${item.from}`}
                                                     />
                                                     {!item.ready && <div style={{width: '100%'}}>
                                                         <progress max={item.chunks} value={item.received} style={{width:'100%'}}></progress>
-                                                        {item.startTime && <div>
+                                                        {item.startTime && <div style={{fontSize:12,marginTop:4}}>
                                                             {(() => {
                                                                 const progressBytes = (item.received / item.chunks) * item.size;
                                                                 const elapsed = (Date.now() - item.startTime!) / 1000;
                                                                 const speed = progressBytes / (elapsed || 1);
                                                                 const remaining = (item.size - progressBytes) / (speed || 1);
-                                                                return `Speed: ${speed.toFixed(2)} B/s, Remaining: ${remaining.toFixed(1)}s`;
+                                                                return `Speed: ${formatSpeed(speed)}, Remaining: ${remaining.toFixed(1)}s`;
                                                             })()}
                                                         </div>}
                                                     </div>}

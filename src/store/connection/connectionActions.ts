@@ -36,6 +36,10 @@ export const markFileReady = (id: string) => ({
     type: ConnectionActionType.RECEIVED_FILE_READY, id
 })
 
+export const setFileStart = (id: string, start: number) => ({
+    type: ConnectionActionType.RECEIVED_FILE_START, id, start
+})
+
 export const connectPeer: (id: string) => (dispatch: Dispatch, getState: () => any) => Promise<void>
     = (id: string) => (async (dispatch, getState) => {
     dispatch(setLoading(true))
@@ -68,14 +72,17 @@ export const connectPeer: (id: string) => (dispatch: Dispatch, getState: () => a
                         size,
                         chunks: total,
                         received: 0,
-                        ready: false,
-                        startTime: Date.now()
+                        ready: false
                     }
                     dispatch(addReceivedFile(received))
                 } else {
                     message.error('Invalid PIN')
                     PeerConnection.sendConnection(id, {dataType: DataType.PIN_REJECT})
                 }
+            } else if (data.dataType === DataType.FILE_META && data.message) {
+                const meta = JSON.parse(data.message)
+                const fileId = `${id}-${data.fileName}`
+                dispatch(setFileStart(fileId, meta.start))
             } else if (data.dataType === DataType.FILE_CHUNK && data.chunk !== undefined && data.index !== undefined) {
                 const fileId = `${id}-${data.fileName}`
                 await cacheChunk(fileId, data.index, data.chunk)
