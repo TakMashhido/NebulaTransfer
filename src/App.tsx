@@ -11,7 +11,7 @@ import {assembleFile} from "./helpers/fileCache";
 import {useAsyncState} from "./helpers/hooks";
 import download from "js-file-download";
 import {ReceivedFile} from "./store/connection/connectionTypes";
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import QrScanner from 'react-qr-scanner';
 
 const {Title} = Typography
@@ -114,7 +114,7 @@ export const App: React.FC = () => {
                                     }}/>
                                     <Button danger onClick={handleStopSession}>Stop</Button>
                                 </Space>
-                                <QRCode value={peer.id || ''} size={128} />
+                                <QRCodeSVG value={peer.id || ''} size={128} />
                             </Space>
                         </Card>
                         <div hidden={!peer.started}>
