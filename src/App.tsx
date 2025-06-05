@@ -6,6 +6,7 @@ import {useAppDispatch, useAppSelector} from "./store/hooks";
 import {startPeer, stopPeerSession} from "./store/peer/peerActions";
 import * as connectionAction from "./store/connection/connectionActions"
 import {DataType, PeerConnection} from "./helpers/peer";
+import {assembleFile} from "./helpers/fileCache";
 import {useAsyncState} from "./helpers/hooks";
 import download from "js-file-download";
 import {ReceivedFile} from "./store/connection/connectionTypes";
@@ -64,14 +65,7 @@ export const App: React.FC = () => {
         try {
             await setSendLoading(true);
             let file = fileList[0] as unknown as File;
-            let blob = new Blob([file], {type: file.type});
-
-            await PeerConnection.sendConnection(connection.selectedId, {
-                dataType: DataType.FILE,
-                file: blob,
-                fileName: file.name,
-                fileType: file.type
-            })
+            await PeerConnection.sendLargeFile(connection.selectedId, file)
             await setSendLoading(false)
             message.info("Send file successfully")
         } catch (err) {
@@ -81,8 +75,9 @@ export const App: React.FC = () => {
         }
     }
 
-    const handleDownload = (file: ReceivedFile) => {
-        download(file.file, file.fileName, file.fileType)
+    const handleDownload = async (file: ReceivedFile) => {
+        const blob = await assembleFile(file.id, file.chunks, file.fileType)
+        download(blob, file.fileName, file.fileType)
     }
 
     return (
@@ -162,12 +157,17 @@ export const App: React.FC = () => {
                                             dataSource={receivedFiles}
                                             renderItem={(item: ReceivedFile) => (
                                                 <List.Item
-                                                    actions={[<Button icon={<DownloadOutlined/>} onClick={() => handleDownload(item)}>Download</Button>]}
+                                                    actions={[<Button icon={<DownloadOutlined/>}
+                                                                     disabled={!item.ready}
+                                                                     onClick={() => handleDownload(item)}>Download</Button>]}
                                                 >
                                                     <List.Item.Meta
                                                         title={item.fileName}
                                                         description={`from ${item.from}`}
                                                     />
+                                                    {!item.ready && <div style={{width: '100%'}}>
+                                                        <progress max={item.chunks} value={item.received} style={{width:'100%'}}></progress>
+                                                    </div>}
                                                 </List.Item>
                                             )}
                                         />
