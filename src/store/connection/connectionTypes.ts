@@ -26,4 +26,5 @@ export interface ReceivedFile {
     readonly chunks: number
     readonly received: number
     readonly ready: boolean
+    readonly startTime?: number
 }

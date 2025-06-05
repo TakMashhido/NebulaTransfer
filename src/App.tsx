@@ -3,10 +3,9 @@ import {Button, Card, Col, Input, Menu, MenuProps, message, Row, Space, Typograp
 import {CopyOutlined, UploadOutlined, DownloadOutlined} from "@ant-design/icons";
 import ThemeToggle from './theme/ThemeToggle';
 import {useAppDispatch, useAppSelector} from "./store/hooks";
-import {startPeer, stopPeerSession, setSecret} from "./store/peer/peerActions";
+import {startPeer, stopPeerSession} from "./store/peer/peerActions";
 import * as connectionAction from "./store/connection/connectionActions"
 import {DataType, PeerConnection} from "./helpers/peer";
-import {deriveKey} from "./helpers/encryption";
 import {assembleFile} from "./helpers/fileCache";
 import {useAsyncState} from "./helpers/hooks";
 import download from "js-file-download";
@@ -39,11 +38,9 @@ export const App: React.FC = () => {
     const connection = useAppSelector((state) => state.connection)
     const receivedFiles = connection.receivedFiles
     const dispatch = useAppDispatch()
-    const [secretInput, setSecretInput] = useState('')
     const [scanOpen, setScanOpen] = useState(false)
 
     const handleStartSession = () => {
-        dispatch(setSecret(secretInput))
         dispatch(startPeer())
     }
 
@@ -58,6 +55,7 @@ export const App: React.FC = () => {
 
     const [fileList, setFileList] = useAsyncState([] as UploadFile[])
     const [sendLoading, setSendLoading] = useAsyncState(false)
+    const [sendInfo, setSendInfo] = useState<{sent:number,total:number,speed:number,remaining:number} | null>(null)
 
     const handleUpload = async () => {
         if (fileList.length === 0) {
@@ -71,8 +69,9 @@ export const App: React.FC = () => {
         try {
             await setSendLoading(true);
             let file = fileList[0] as unknown as File;
-            const key = await deriveKey(peer.secret)
-            await PeerConnection.sendLargeFile(connection.selectedId, file, key)
+            await PeerConnection.sendFileWithPin(connection.selectedId, file, (sent, total, speed, remaining) => {
+                setSendInfo({sent, total, speed, remaining})
+            })
             await setSendLoading(false)
             message.info("Send file successfully")
         } catch (err) {
@@ -100,7 +99,6 @@ export const App: React.FC = () => {
                             <Title level={2} style={{textAlign: "center"}}>NebulaTransfer</Title>
                         <Card hidden={peer.started}>
                             <Space direction="vertical">
-                                <Input.Password placeholder={"Secret"} value={secretInput} onChange={e => setSecretInput(e.target.value)} />
                                 <Button onClick={handleStartSession} loading={peer.loading}>Start</Button>
                             </Space>
                         </Card>
@@ -178,6 +176,12 @@ export const App: React.FC = () => {
                                 >
                                 {sendLoading ? 'Sending' : 'Send'}
                                 </Button>
+                                {sendInfo &&
+                                    <div style={{marginTop: 8}}>
+                                        <progress max={sendInfo.total} value={sendInfo.sent} style={{width:'100%'}}></progress>
+                                        <div>Speed: {sendInfo.speed.toFixed(2)} B/s, Remaining: {sendInfo.remaining.toFixed(1)}s</div>
+                                    </div>
+                                }
                             </Card>
                             <Card title="Received Files" style={{marginTop: 16}}>
                                 {
@@ -197,6 +201,15 @@ export const App: React.FC = () => {
                                                     />
                                                     {!item.ready && <div style={{width: '100%'}}>
                                                         <progress max={item.chunks} value={item.received} style={{width:'100%'}}></progress>
+                                                        {item.startTime && <div>
+                                                            {(() => {
+                                                                const progressBytes = (item.received / item.chunks) * item.size;
+                                                                const elapsed = (Date.now() - item.startTime!) / 1000;
+                                                                const speed = progressBytes / (elapsed || 1);
+                                                                const remaining = (item.size - progressBytes) / (speed || 1);
+                                                                return `Speed: ${speed.toFixed(2)} B/s, Remaining: ${remaining.toFixed(1)}s`;
+                                                            })()}
+                                                        </div>}
                                                     </div>}
                                                 </List.Item>
                                             )}
