@@ -1,15 +1,18 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {Button, Card, Col, Input, Menu, MenuProps, message, Row, Space, Typography, Upload, UploadFile, Layout, List} from "antd";
 import {CopyOutlined, UploadOutlined, DownloadOutlined} from "@ant-design/icons";
 import ThemeToggle from './theme/ThemeToggle';
 import {useAppDispatch, useAppSelector} from "./store/hooks";
-import {startPeer, stopPeerSession} from "./store/peer/peerActions";
+import {startPeer, stopPeerSession, setSecret} from "./store/peer/peerActions";
 import * as connectionAction from "./store/connection/connectionActions"
 import {DataType, PeerConnection} from "./helpers/peer";
+import {deriveKey} from "./helpers/encryption";
 import {assembleFile} from "./helpers/fileCache";
 import {useAsyncState} from "./helpers/hooks";
 import download from "js-file-download";
 import {ReceivedFile} from "./store/connection/connectionTypes";
+import QRCode from 'qrcode.react';
+import QrScanner from 'react-qr-scanner';
 
 const {Title} = Typography
 type MenuItem = Required<MenuProps>['items'][number]
@@ -36,8 +39,11 @@ export const App: React.FC = () => {
     const connection = useAppSelector((state) => state.connection)
     const receivedFiles = connection.receivedFiles
     const dispatch = useAppDispatch()
+    const [secretInput, setSecretInput] = useState('')
+    const [scanOpen, setScanOpen] = useState(false)
 
     const handleStartSession = () => {
+        dispatch(setSecret(secretInput))
         dispatch(startPeer())
     }
 
@@ -65,7 +71,8 @@ export const App: React.FC = () => {
         try {
             await setSendLoading(true);
             let file = fileList[0] as unknown as File;
-            await PeerConnection.sendLargeFile(connection.selectedId, file)
+            const key = await deriveKey(peer.secret)
+            await PeerConnection.sendLargeFile(connection.selectedId, file, key)
             await setSendLoading(false)
             message.info("Send file successfully")
         } catch (err) {
@@ -92,16 +99,22 @@ export const App: React.FC = () => {
                         <Card>
                             <Title level={2} style={{textAlign: "center"}}>NebulaTransfer</Title>
                         <Card hidden={peer.started}>
-                            <Button onClick={handleStartSession} loading={peer.loading}>Start</Button>
+                            <Space direction="vertical">
+                                <Input.Password placeholder={"Secret"} value={secretInput} onChange={e => setSecretInput(e.target.value)} />
+                                <Button onClick={handleStartSession} loading={peer.loading}>Start</Button>
+                            </Space>
                         </Card>
                         <Card hidden={!peer.started}>
-                            <Space direction="horizontal">
-                                <div>ID: {peer.id}</div>
-                                <Button icon={<CopyOutlined/>} onClick={async () => {
-                                    await navigator.clipboard.writeText(peer.id || "")
-                                    message.info("Copied: " + peer.id)
-                                }}/>
-                                <Button danger onClick={handleStopSession}>Stop</Button>
+                            <Space direction="vertical">
+                                <Space direction="horizontal">
+                                    <div>ID: {peer.id}</div>
+                                    <Button icon={<CopyOutlined/>} onClick={async () => {
+                                        await navigator.clipboard.writeText(peer.id || "")
+                                        message.info("Copied: " + peer.id)
+                                    }}/>
+                                    <Button danger onClick={handleStopSession}>Stop</Button>
+                                </Space>
+                                <QRCode value={peer.id || ''} size={128} />
                             </Space>
                         </Card>
                         <div hidden={!peer.started}>
@@ -113,7 +126,24 @@ export const App: React.FC = () => {
                                            />
                                     <Button onClick={handleConnectOtherPeer}
                                             loading={connection.loading}>Connect</Button>
+                                    <Button onClick={() => setScanOpen(true)}>Scan</Button>
                                 </Space>
+                                {scanOpen && (
+                                    <div style={{marginTop: 16}}>
+                                        <QrScanner
+                                            delay={300}
+                                            onError={() => setScanOpen(false)}
+                                            onScan={(data: any) => {
+                                                if (data) {
+                                                    dispatch(connectionAction.changeConnectionInput(data.text))
+                                                    setScanOpen(false)
+                                                    handleConnectOtherPeer()
+                                                }
+                                            }}
+                                            style={{width: '100%'}}
+                                        />
+                                    </div>
+                                )}
                             </Card>
 
                             <Card title="Connection">
@@ -178,6 +208,7 @@ export const App: React.FC = () => {
                 </Col>
             </Row>
             </Layout.Content>
+            <Layout.Footer style={{textAlign: 'center'}}>Developed by Koustav Kumar Mondal</Layout.Footer>
         </Layout>
     )
 }

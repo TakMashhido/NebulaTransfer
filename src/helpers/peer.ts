@@ -1,5 +1,6 @@
 import Peer, {DataConnection, PeerErrorType, PeerError} from "peerjs";
 import {message} from "antd";
+import {encryptArrayBuffer, decryptArrayBuffer} from './encryption'
 
 export enum DataType {
     FILE = 'FILE',
@@ -129,7 +130,7 @@ export const PeerConnection = {
             reject(err)
         }
     }),
-    sendLargeFile: async (id: string, file: File, chunkSize = 1024 * 1024) => {
+    sendLargeFile: async (id: string, file: File, key: CryptoKey, chunkSize = 4 * 1024 * 1024) => {
         const total = Math.ceil(file.size / chunkSize)
         await PeerConnection.sendConnection(id, {
             dataType: DataType.FILE_META,
@@ -140,9 +141,10 @@ export const PeerConnection = {
         })
         for (let i = 0; i < total; i++) {
             const chunk = await file.slice(i * chunkSize, (i + 1) * chunkSize).arrayBuffer()
+            const encrypted = await encryptArrayBuffer(chunk, key)
             await PeerConnection.sendConnection(id, {
                 dataType: DataType.FILE_CHUNK,
-                chunk,
+                chunk: encrypted,
                 index: i,
                 total,
                 fileName: file.name,
@@ -154,7 +156,7 @@ export const PeerConnection = {
             fileName: file.name
         })
     },
-    onConnectionReceiveData: (id: string, callback: (f: Data) => void) => {
+    onConnectionReceiveData: (id: string, key: CryptoKey, callback: (f: Data) => void) => {
         if (!peer) {
             throw new Error("Peer doesn't start yet")
         }
@@ -163,9 +165,13 @@ export const PeerConnection = {
         }
         let conn = connectionMap.get(id)
         if (conn) {
-            conn.on('data', function (receivedData) {
+            conn.on('data', async function (receivedData) {
                 console.log("Receiving data from " + id)
                 let data = receivedData as Data
+                if (data.dataType === DataType.FILE_CHUNK && data.chunk) {
+                    const decrypted = await decryptArrayBuffer(data.chunk, key)
+                    data = {...data, chunk: decrypted}
+                }
                 callback(data)
             })
         }
