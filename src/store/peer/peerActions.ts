@@ -2,7 +2,7 @@ import {PeerActionType} from "./peerTypes";
 import {Dispatch} from "redux";
 import {DataType, PeerConnection} from "../../helpers/peer";
 import {message} from "antd";
-import {addConnectionList, removeConnectionList, addReceivedFile, updateFileProgress, markFileReady, setFileStart} from "../connection/connectionActions";
+import {addConnectionList, removeConnectionList, addReceivedFile, updateFileProgress, markFileReady, setFileStart, updateReceivedFileStats} from "../connection/connectionActions";
 import {cacheChunk} from "../../helpers/fileCache";
 
 export const startPeerSession = (id: string) => ({
@@ -71,7 +71,18 @@ export const startPeer: () => (dispatch: Dispatch, getState: () => any) => Promi
                     PeerConnection.sendConnection(peerId, { dataType: DataType.FILE_CHUNK_ACK, index: data.index })
                 } else if (data.dataType === DataType.FILE_COMPLETE) {
                     const fileId = `${peerId}-${data.fileName}`
-                    dispatch(markFileReady(fileId))
+                    const { receivedFiles } = getState().connection;
+                    const file = receivedFiles.find((f: any) => f.id === fileId);
+
+                    if (file && file.startTime && file.size) {
+                        const endTime = Date.now();
+                        const totalTimeInSeconds = (endTime - file.startTime) / 1000;
+                        const averageSpeed = totalTimeInSeconds > 0 ? file.size / totalTimeInSeconds : file.size;
+                        dispatch(updateReceivedFileStats(fileId, averageSpeed, totalTimeInSeconds));
+                    } else {
+                        dispatch(markFileReady(fileId));
+                    }
+                    PeerConnection.sendConnection(peerId, { dataType: DataType.FILE_COMPLETE_ACK, fileName: data.fileName });
                 } else if (data.dataType === DataType.FILE && data.file) {
                     const fileId = `${peerId}-${data.fileName}`
                     const received = {

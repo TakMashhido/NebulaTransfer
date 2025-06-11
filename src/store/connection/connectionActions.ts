@@ -110,6 +110,7 @@ export const connectPeer: (id: string) => (dispatch: Dispatch, getState: () => a
                     // Fallback if startTime or size isn't available for some reason, just mark ready
                     dispatch(markFileReady(fileId));
                 }
+                PeerConnection.sendConnection(id, { dataType: DataType.FILE_COMPLETE_ACK, fileName: data.fileName });
             } else if (data.dataType === DataType.FILE && data.file) {
                 const fileId = `${id}-${data.fileName}`
                 const received: ReceivedFile = {
