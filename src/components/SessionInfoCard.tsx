@@ -1,8 +1,9 @@
 import React from 'react';
 import { Card, Button, Typography, Spin, Alert, Space, message } from 'antd'; // Added Space and message
-import { PlayCircleOutlined, StopOutlined, LoadingOutlined, CopyOutlined } from '@ant-design/icons'; // Changed icons
+import { PlayCircleOutlined, StopOutlined, LoadingOutlined, CopyOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
-import { RootState, useAppSelector } from '../store/store'; // Added useAppSelector
+import { RootState } from '../store'; // Corrected path
+import { useAppSelector } from '../store/hooks'; // Corrected path
 import { QRCodeSVG } from 'qrcode.react';
 
 const { Text, Paragraph } = Typography;
