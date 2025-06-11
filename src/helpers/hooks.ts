@@ -1,8 +1,8 @@
 import {useState} from "react";
 
-export const useAsyncState = (initialValue: any) => {
-    const [value, setValue] = useState(initialValue);
-    const setter = (x: any) =>
+export function useAsyncState<T>(initialValue: T): [T, (v: T) => Promise<void>] {
+    const [value, setValue] = useState<T>(initialValue);
+    const setter = (x: T) =>
         new Promise<void>(resolve => {
             setValue(x);
             resolve();

@@ -119,6 +119,13 @@ export const PeerConnection = {
             });
         }
     },
+    disconnectPeer: (id: string) => {
+        const conn = connectionMap.get(id);
+        if (conn) {
+            conn.close();
+            connectionMap.delete(id);
+        }
+    },
     sendConnection: (id: string, data: Data): Promise<void> => new Promise((resolve, reject) => {
         const conn = connectionMap.get(id);
         if (!conn || !conn.open) {

@@ -3,7 +3,6 @@ import { Card, Button, Upload, message, Typography, Progress, Alert, Select, Emp
 import { SendOutlined, PaperClipOutlined } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
 import { MAX_FILE_SIZE_MB } from '../config';
-import { Connection } from '../store/connectionsSlice';
 import { formatSpeed, formatDuration } from '../helpers/format'; // Import helpers
 
 const { Paragraph, Text } = Typography; // Added Text
@@ -17,7 +16,7 @@ interface SendFileCardProps {
   sendProgress: number;
   sendInfoString: string | null;
   disabled: boolean;
-  activeConnections: Connection[];
+  activeConnections: string[];
   selectedTargetId: string | null;
   setSelectedTargetId: (id: string | null) => void;
 }
@@ -157,9 +156,9 @@ const SendFileCard: React.FC<SendFileCardProps> = ({
             }}
             disabled={disabled || sendLoading}
           >
-            {activeConnections.map((conn) => (
-              <Option key={conn.peer} value={conn.peer}>
-                {conn.peer}
+            {activeConnections.map((peerId) => (
+              <Option key={peerId} value={peerId}>
+                {peerId}
               </Option>
             ))}
           </Select>

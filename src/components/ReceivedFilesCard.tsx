@@ -1,14 +1,15 @@
 import React from 'react';
-import { Card, List, Button, Typography, Empty, Tag, Tooltip, Progress, message, Space } from 'antd'; // Added Space
+import { Card, List, Button, Typography, Empty, Tag, Tooltip, Progress, message, Space } from 'antd';
 import { FileDoneOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../store'; // Corrected path
-import { useAppSelector } from '../store/hooks'; // Corrected path
+import { RootState } from '../store';
+import { useAppSelector } from '../store/hooks';
 import { ReceivedFile } from '../store/connection/connectionTypes';
 import { clearReceivedFiles } from '../store/connection/connectionActions';
-import { saveAs } from 'file-saver';
+import fileDownload from 'js-file-download';
+import { assembleFile } from '../helpers/fileCache';
 import { addLog } from '../store/logSlice';
-import { formatBytes, formatSpeed, formatDuration } from '../helpers/format'; // Import format helpers
+import { formatBytes, formatSpeed, formatDuration } from '../helpers/format';
 
 const { Text, Paragraph } = Typography;
 
@@ -18,20 +19,23 @@ const ReceivedFilesCard: React.FC = () => {
   const currentTheme = useAppSelector((state) => state.theme.currentTheme);
 
 
-  const handleDownload = (file: ReceivedFile) => {
-    if (file.blob) {
-      saveAs(file.blob, file.name);
-      dispatch(addLog(`Downloaded file: ${file.name}`));
-    } else {
-      message.error(`File data for "${file.name}" is not fully available or corrupted.`);
-      dispatch(addLog(`Error: No complete blob data for file: ${file.name}`));
+  const handleDownload = async (file: ReceivedFile) => {
+    try {
+      const blob = await assembleFile(file.id, file.chunks, file.fileType);
+      fileDownload(blob, file.fileName);
+      dispatch(addLog(`Downloaded file: ${file.fileName}`));
+    } catch (err) {
+      console.error('Download error', err);
+      message.error(`File data for "${file.fileName}" is not fully available or corrupted.`);
+      dispatch(addLog(`Error downloading file: ${file.fileName}`));
     }
   };
 
-  const handlePreview = (file: ReceivedFile) => {
-    if (file.blob && (file.type.startsWith('image/') || file.type === 'application/pdf')) {
+  const handlePreview = async (file: ReceivedFile) => {
+    if (file.fileType.startsWith('image/') || file.fileType === 'application/pdf') {
       try {
-        const url = URL.createObjectURL(file.blob);
+        const blob = await assembleFile(file.id, file.chunks, file.fileType);
+        const url = URL.createObjectURL(blob);
         window.open(url, '_blank');
         // It's better to revoke the object URL when it's no longer needed,
         // for example, when the new tab/window is closed, but that's hard to track.
@@ -40,12 +44,12 @@ const ReceivedFilesCard: React.FC = () => {
         setTimeout(() => URL.revokeObjectURL(url), 1000 * 60); // Revoke after 1 minute
       } catch (error) {
         console.error("Error creating object URL for preview:", error);
-        message.error(`Could not generate preview for ${file.name}.`);
-        dispatch(addLog(`Error creating object URL for preview of ${file.name}: ${error}`));
+        message.error(`Could not generate preview for ${file.fileName}.`);
+        dispatch(addLog(`Error creating object URL for preview of ${file.fileName}: ${error}`));
       }
     } else {
-      message.info(`Preview not available for file type: ${file.type || 'unknown'}`);
-      dispatch(addLog(`Preview not available for file type: ${file.type || 'unknown'} for file ${file.name}`));
+      message.info(`Preview not available for file type: ${file.fileType || 'unknown'}`);
+      dispatch(addLog(`Preview not available for file type: ${file.fileType || 'unknown'} for file ${file.fileName}`));
     }
   };
 
@@ -86,14 +90,14 @@ const ReceivedFilesCard: React.FC = () => {
             key={file.id} // Added key for list items
             actions={[
               <Tooltip title="Download File">
-                <Button icon={<DownloadOutlined />} onClick={() => handleDownload(file)} type="text" disabled={!file.ready && file.progress !== 100} />
+                <Button icon={<DownloadOutlined />} onClick={() => handleDownload(file)} type="text" disabled={!file.ready && file.received < file.chunks} />
               </Tooltip>,
               <Tooltip title="Preview File (if supported)">
                 <Button
                   icon={<EyeOutlined />}
                   onClick={() => handlePreview(file)}
                   type="text"
-                  disabled={!file.ready || (!file.type.startsWith('image/') && file.type !== 'application/pdf')}
+                  disabled={!file.ready || (!file.fileType.startsWith('image/') && file.fileType !== 'application/pdf')}
                 />
               </Tooltip>
             ]}
@@ -101,9 +105,9 @@ const ReceivedFilesCard: React.FC = () => {
             <List.Item.Meta
               avatar={<FileDoneOutlined style={{ fontSize: '24px', color: file.ready ? '#52c41a' : '#1890ff' }} />}
               title={
-                <Tooltip title={file.name}>
+                <Tooltip title={file.fileName}>
                   <Text style={{color: currentTheme === 'dark' ? 'white' : 'black'}} ellipsis={{ tooltip: false }}>
-                    {file.name}
+                    {file.fileName}
                   </Text>
                 </Tooltip>
               }
@@ -122,9 +126,9 @@ const ReceivedFilesCard: React.FC = () => {
                     </Paragraph>
                   )}
                   <div>
-                    {file.type && <Tag style={{ marginRight: !file.ready && file.progress < 100 ? 8 : 0 }}>{file.type}</Tag>}
-                    {!file.ready && file.progress < 100 && (
-                      <Progress percent={file.progress} size="small" style={{width: file.type ? 'calc(100% - 60px)' : '100%', display:'inline-block'}} />
+                    {file.fileType && <Tag style={{ marginRight: !file.ready && file.received < file.chunks ? 8 : 0 }}>{file.fileType}</Tag>}
+                    {!file.ready && file.received < file.chunks && (
+                      <Progress percent={(file.received / file.chunks) * 100} size="small" style={{width: file.fileType ? 'calc(100% - 60px)' : '100%', display:'inline-block'}} />
                     )}
                   </div>
                 </Space>

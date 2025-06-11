@@ -46,6 +46,7 @@ export const App: React.FC = () => {
   const [sendLoading, setSendLoading] = useAsyncState<boolean>(false);
   const [sendInfo, setSendInfo] = useState<{ sent: number, total: number, speed: number, remaining: number } | null>(null);
   const [sendProgress, setSendProgress] = useState(0); // For SendFileCard visual
+  const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
 
   // QR Scanner state is now managed within ConnectionCard.tsx
   // const [scanOpen, setScanOpen] = useState(false);
@@ -77,6 +78,11 @@ export const App: React.FC = () => {
     } else {
       message.warning("Please enter a Peer ID to connect.");
     }
+  };
+
+  const handleDisconnectPeer = (peerId: string) => {
+    PeerConnection.disconnectPeer(peerId);
+    dispatch(connectionAction.removeConnectionList(peerId));
   };
 
   // File upload handler remains in App.tsx as it uses PeerConnection
@@ -160,22 +166,15 @@ export const App: React.FC = () => {
             {peerStoreState.started && (
               <>
                 <ConnectionCard
-                  // Props for ConnectionCard
-                  // connectionLoading={connectionStoreState.loading} // Handled by ConnectionCard's useSelector or internal state
-                  onConnect={handleConnectOtherPeer} // Pass the handler
+                  disabled={connectionStoreState.loading}
+                  onConnect={handleConnectOtherPeer}
                   // scanOpen={scanOpen} // Managed internally by ConnectionCard
                   // setScanOpen={setScanOpen} // Managed internally by ConnectionCard
                   // onQrScanResult={onQrScanResult} // Managed internally by ConnectionCard
                   // currentConnectionIdInput={connectionStoreState.id} // Pass if ConnectionCard needs to prefill from Redux
                   // onChangeConnectionInput={(id) => dispatch(connectionAction.changeConnectionInput(id))} // Pass if input is controlled by Redux via App
                 />
-                <ConnectionsListCard
-                  // Props for ConnectionsListCard
-                  // connections={connectionStoreState.list} // Handled by ConnectionsListCard's useSelector
-                  // selectedConnectionId={connectionStoreState.selectedId} // Handled by ConnectionsListCard's useSelector
-                  // onSelectConnection={(key) => dispatch(connectionAction.selectItem(key))} // Handled by ConnectionsListCard's useSelector + dispatch
-                  // onDisconnectPeer is more complex, might need PeerConnection instance or specific dispatch
-                />
+                <ConnectionsListCard onDisconnectPeer={handleDisconnectPeer} />
               </>
             )}
           </Col>
@@ -199,9 +198,10 @@ export const App: React.FC = () => {
                 // For simplicity, handleUpload now takes the targetID.
                 // SendFileCard will need a way to select this targetID from available connections.
                 // This was not explicitly in the original SendFileCard. Adding a simple selector.
-                 activeConnections={connectionStoreState.list.filter(c => PeerConnection.isConnected(c))} // Pass only connected peers
-                 // selectedTargetId={connectionStoreState.selectedId} // Pass the globally selected connection
-                 // setSelectedTargetId={(id) => dispatch(connectionAction.selectItem(id))}
+                 activeConnections={connectionStoreState.list}
+                 selectedTargetId={selectedTargetId}
+                 setSelectedTargetId={setSelectedTargetId}
+                 disabled={sendLoading || connectionStoreState.list.length === 0}
               />
               <ReceivedFilesCard
                 // Props for ReceivedFilesCard
