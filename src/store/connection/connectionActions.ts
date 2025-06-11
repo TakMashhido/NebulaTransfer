@@ -95,6 +95,7 @@ export const connectPeer: (id: string) => (dispatch: Dispatch, getState: () => a
                 const fileId = `${id}-${data.fileName}`
                 await cacheChunk(fileId, data.index, data.chunk)
                 dispatch(updateFileProgress(fileId, data.index + 1))
+                PeerConnection.sendConnection(id, { dataType: DataType.FILE_CHUNK_ACK, index: data.index })
             } else if (data.dataType === DataType.FILE_COMPLETE) {
                 const fileId = `${id}-${data.fileName}`;
                 const { receivedFiles } = getState().connection; // Get current received files
