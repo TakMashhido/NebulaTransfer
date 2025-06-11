@@ -158,7 +158,7 @@ export const App: React.FC = () => {
             </Col>
         </Row>
         <Row gutter={[16, 16]} justify="center">
-          <Col xs={24} sm={24} md={8} lg={8} xl={6}>
+          <Col xs={24} sm={24} md={8} lg={8} xl={6} className="desktop-col">
             <SessionInfoCard
               // Props passed to SessionInfoCard
               // peerId={peerStoreState.id} // Handled by SessionInfoCard's useSelector
@@ -186,7 +186,7 @@ export const App: React.FC = () => {
           </Col>
 
           {peerStoreState.started && connectionStoreState.list.length > 0 && (
-            <Col xs={24} sm={24} md={8} lg={8} xl={6}>
+            <Col xs={24} sm={24} md={8} lg={8} xl={6} className="desktop-col">
               <SendFileCard
                 // Props for SendFileCard
                 fileList={fileList}
@@ -221,7 +221,7 @@ export const App: React.FC = () => {
           {/* LogViewer could be a third column or below, depending on layout preference */}
           {/* For now, keeping a similar 3-column structure if all cards are active */}
            {peerStoreState.started && (
-            <Col xs={24} sm={24} md={8} lg={8} xl={6}>
+            <Col xs={24} sm={24} md={8} lg={8} xl={6} className="desktop-col">
               {/* Placeholder for LogViewer if it's a separate component */}
               {/* <LogViewer /> */}
             </Col>

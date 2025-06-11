@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'; // Added useState, useEffect
 import { Card, Button, Upload, message, Typography, Progress, Alert, Select, Empty, Space } from 'antd';
 import { SendOutlined, PaperClipOutlined } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
-import { MAX_FILE_SIZE_MB } from '../config';
+import { MAX_FILE_SIZE_GB } from '../config';
 import { formatSpeed, formatDuration } from '../helpers/format'; // Import helpers
 
 const { Paragraph, Text } = Typography; // Added Text
@@ -60,8 +60,8 @@ const SendFileCard: React.FC<SendFileCardProps> = ({
         message.error('You can only send one file at a time.');
         return Upload.LIST_IGNORE;
       }
-      if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-        message.error(`File is too large. Max size: ${MAX_FILE_SIZE_MB}MB. Please select a smaller file.`);
+      if (file.size > MAX_FILE_SIZE_GB * 1024 * 1024 * 1024) {
+        message.error(`File is too large. Max size: ${MAX_FILE_SIZE_GB}GB. Please select a smaller file.`);
         return Upload.LIST_IGNORE;
       }
       setFileList([file]);
@@ -172,7 +172,7 @@ const SendFileCard: React.FC<SendFileCardProps> = ({
 
           <Upload {...uploadAntProps} disabled={disabled || sendLoading || !selectedTargetId} style={{width: '100%'}}>
             <Button icon={<PaperClipOutlined />} disabled={disabled || sendLoading || !selectedTargetId} block>
-              Select File (Max {MAX_FILE_SIZE_MB}MB)
+              Select File (Max {MAX_FILE_SIZE_GB}GB)
             </Button>
           </Upload>
 
