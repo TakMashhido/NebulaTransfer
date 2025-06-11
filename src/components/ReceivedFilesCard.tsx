@@ -2,9 +2,10 @@ import React from 'react';
 import { Card, List, Button, Typography, Empty, Tag, Tooltip, Progress, message, Space } from 'antd'; // Added Space
 import { FileDoneOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, useAppSelector } from '../store/store';
-import { ReceivedFile } from '../store/connection/connectionTypes'; // Corrected import path
-import { clearReceivedFiles } from '../store/connection/connectionActions'; // Corrected import path
+import { RootState } from '../store'; // Corrected path
+import { useAppSelector } from '../store/hooks'; // Corrected path
+import { ReceivedFile } from '../store/connection/connectionTypes';
+import { clearReceivedFiles } from '../store/connection/connectionActions';
 import { saveAs } from 'file-saver';
 import { addLog } from '../store/logSlice';
 import { formatBytes, formatSpeed, formatDuration } from '../helpers/format'; // Import format helpers

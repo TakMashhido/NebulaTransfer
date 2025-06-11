@@ -2,7 +2,7 @@ import React from 'react';
 import { Layout, Typography, Switch } from 'antd';
 import { MoonOutlined, SunOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../store/store';
+import { RootState } from '../store'; // Corrected path
 import { toggleTheme } from '../store/themeSlice';
 
 const { Title } = Typography;
