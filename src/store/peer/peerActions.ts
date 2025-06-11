@@ -68,6 +68,7 @@ export const startPeer: () => (dispatch: Dispatch, getState: () => any) => Promi
                     const fileId = `${peerId}-${data.fileName}`
                     await cacheChunk(fileId, data.index, data.chunk)
                     dispatch(updateFileProgress(fileId, data.index + 1))
+                    PeerConnection.sendConnection(peerId, { dataType: DataType.FILE_CHUNK_ACK, index: data.index })
                 } else if (data.dataType === DataType.FILE_COMPLETE) {
                     const fileId = `${peerId}-${data.fileName}`
                     dispatch(markFileReady(fileId))
