@@ -143,7 +143,14 @@ export const App: React.FC = () => {
   return (
     <Layout style={{ minHeight: '100vh' }}> {/* Removed hardcoded background */}
       <MainHeader />
-      <Content style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+      <Content
+        style={{
+          padding: '20px',
+          maxWidth: '1200px',
+          width: '100%',
+          margin: '0 auto',
+        }}
+      >
         {/* NebulaTransfer Title Card - can be a simple Typography.Title or its own component if complex */}
         <Row justify="center" style={{ marginBottom: 24 }}>
             <Col>
@@ -152,7 +159,7 @@ export const App: React.FC = () => {
             </Col>
         </Row>
         <Row gutter={[16, 16]} justify="center">
-          <Col xs={24} sm={24} md={8}>
+          <Col xs={24} sm={24} md={8} lg={8} xl={6}>
             <SessionInfoCard
               // Props passed to SessionInfoCard
               // peerId={peerStoreState.id} // Handled by SessionInfoCard's useSelector
@@ -180,7 +187,7 @@ export const App: React.FC = () => {
           </Col>
 
           {peerStoreState.started && connectionStoreState.list.length > 0 && (
-            <Col xs={24} sm={24} md={8}>
+            <Col xs={24} sm={24} md={8} lg={8} xl={6}>
               <SendFileCard
                 // Props for SendFileCard
                 fileList={fileList}
@@ -215,7 +222,7 @@ export const App: React.FC = () => {
           {/* LogViewer could be a third column or below, depending on layout preference */}
           {/* For now, keeping a similar 3-column structure if all cards are active */}
            {peerStoreState.started && (
-            <Col xs={24} sm={24} md={8}>
+            <Col xs={24} sm={24} md={8} lg={8} xl={6}>
               {/* Placeholder for LogViewer if it's a separate component */}
               {/* <LogViewer /> */}
             </Col>
