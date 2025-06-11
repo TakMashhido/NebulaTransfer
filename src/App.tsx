@@ -20,8 +20,7 @@ import { assembleFile } from "./helpers/fileCache"; // Used for handleDownload (
 import { useAsyncState } from "./helpers/hooks"; // For fileList, sendLoading
 import download from "js-file-download"; // Used for handleDownload (now in ReceivedFilesCard)
 import { ReceivedFile } from "./store/connection/connectionTypes"; // Type for handleDownload (now in ReceivedFilesCard)
-// formatSpeed might be used in SendFileCard or ReceivedFilesCard if they display speed directly.
-// import { formatSpeed } from "./helpers/format";
+import { formatSpeed } from "./helpers/format";
 
 // Import new components
 import MainHeader from './components/MainHeader';
@@ -196,7 +195,7 @@ export const App: React.FC = () => {
                 sendLoading={sendLoading}
                 sendProgress={sendProgress} // Pass progress state
                 // sendInfo={sendInfo ? `Speed: ${formatSpeed(sendInfo.speed)}, Remaining: ${sendInfo.remaining.toFixed(1)}s` : null} // Format info here or in card
-                sendInfoString={sendInfo ? `Sent: ${(sendInfo.sent / (1024*1024)).toFixed(2)}MB / ${(sendInfo.total / (1024*1024)).toFixed(2)}MB | Speed: ${sendInfo.speed > 0 ? sendInfo.speed + ' MB/s' : 'Calculating...'} | ETA: ${sendInfo.remaining > 0 ? sendInfo.remaining.toFixed(1) + 's' : '-'}` : null}
+                sendInfoString={sendInfo ? `Sent: ${(sendInfo.sent / (1024*1024)).toFixed(2)}MB / ${(sendInfo.total / (1024*1024)).toFixed(2)}MB | Speed: ${sendInfo.speed > 0 ? formatSpeed(sendInfo.speed) : 'Calculating...'} | ETA: ${sendInfo.remaining > 0 ? sendInfo.remaining.toFixed(1) + 's' : '-'}` : null}
                 // connections={connectionStoreState.list} // Handled by SendFileCard's useSelector
                 // selectedConnectionId={connectionStoreState.selectedId} // Pass if used for targeting send
                 // onSelectConnectionTarget={(id) => dispatch(connectionAction.selectItem(id))} // Or manage target selection locally in SendFileCard
