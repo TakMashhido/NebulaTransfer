@@ -1,11 +1,13 @@
 import {configureStore} from '@reduxjs/toolkit'
 import {PeerReducer} from "./peer/peerReducer";
 import {ConnectionReducer} from "./connection/connectionReducer";
+import themeReducer from './themeSlice'; // Import the new theme reducer
 
 export const store = configureStore({
     reducer: {
         peer: PeerReducer,
-        connection: ConnectionReducer
+        connection: ConnectionReducer,
+        theme: themeReducer, // Add theme reducer here
     }
 })
 
