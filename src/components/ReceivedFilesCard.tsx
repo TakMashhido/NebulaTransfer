@@ -128,7 +128,17 @@ const ReceivedFilesCard: React.FC = () => {
                   <div>
                     {file.fileType && <Tag style={{ marginRight: !file.ready && file.received < file.chunks ? 8 : 0 }}>{file.fileType}</Tag>}
                     {!file.ready && file.received < file.chunks && (
-                      <Progress percent={(file.received / file.chunks) * 100} size="small" style={{width: file.fileType ? 'calc(100% - 60px)' : '100%', display:'inline-block'}} />
+                      <Progress
+                        percent={(file.received / file.chunks) * 100}
+                        size="small"
+                        format={() => {
+                          const elapsed = file.startTime ? (Date.now() - file.startTime) / 1000 : 0;
+                          const receivedBytes = (file.size / file.chunks) * file.received;
+                          const speed = elapsed > 0 ? receivedBytes / elapsed : 0;
+                          return `${formatSpeed(speed)}`;
+                        }}
+                        style={{width: file.fileType ? 'calc(100% - 60px)' : '100%', display:'inline-block'}}
+                      />
                     )}
                   </div>
                 </Space>
