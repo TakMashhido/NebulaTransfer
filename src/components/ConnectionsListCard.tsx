@@ -6,22 +6,19 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store'; // Corrected path
 import { useAppSelector } from '../store/hooks'; // Corrected path
 import { addLog } from '../store/logSlice';
-import { Connection } from '../store/connectionsSlice'; // Keep this for the detailed list
 import * as connectionAction from "../store/connection/connectionActions";
 
 
 const { Text } = Typography;
 
 interface ConnectionsListCardProps {
-  onDisconnectPeer: (peerId: string) => void;
+  onDisconnectPeer?: (peerId: string) => void;
 }
 
 const ConnectionsListCard: React.FC<ConnectionsListCardProps> = ({ onDisconnectPeer }) => {
   const dispatch = useDispatch();
   // connection.list contains peer IDs for the menu (order and identity)
   const connectionPeerIds = useSelector((state: RootState) => state.connection.list);
-  // connections.connections contains detailed objects { peer, open, metadata }
-  const detailedConnections = useSelector((state: RootState) => state.connections.connections);
 
   const selectedConnectionId = useSelector((state: RootState) => state.connection.selectedId);
   const currentTheme = useAppSelector((state) => state.theme.currentTheme);
@@ -29,8 +26,10 @@ const ConnectionsListCard: React.FC<ConnectionsListCardProps> = ({ onDisconnectP
 
 
   const handleDisconnect = (peerToDisconnect: string) => {
-    dispatch(addLog(`Requesting disconnect from peer: ${peerToDisconnect} via ConnectionsListCard.`));
-    onDisconnectPeer(peerToDisconnect);
+    if (onDisconnectPeer) {
+      dispatch(addLog(`Requesting disconnect from peer: ${peerToDisconnect} via ConnectionsListCard.`));
+      onDisconnectPeer(peerToDisconnect);
+    }
   };
 
   const handleSelectConnection = (peerIdToSelect: string) => {
@@ -45,10 +44,8 @@ const ConnectionsListCard: React.FC<ConnectionsListCardProps> = ({ onDisconnectP
     );
   }
 
-  // Prepare data for the detailed list by mapping peer IDs to their detailed objects
-  const listDataSource: Connection[] = connectionPeerIds.map(id => {
-    return detailedConnections.find(conn => conn.peer === id) || { peer: id, open: false, metadata: {}, reliable: false, serialization: 'binary', type: 'data', bufferSize: 0 }; // Basic fallback
-  });
+  // Data source is just the list of peer ids
+  const listDataSource = connectionPeerIds;
 
   return (
     <Card title="Active Connections" style={{ marginBottom: 20 }}>
@@ -76,41 +73,34 @@ const ConnectionsListCard: React.FC<ConnectionsListCardProps> = ({ onDisconnectP
         {listDataSource.length > 0 && <Text>Connection Details & Actions:</Text>}
         <List
           dataSource={listDataSource}
-          renderItem={(conn: Connection) => (
+          renderItem={(peerId: string) => (
             <List.Item
-              key={conn.peer}
-              actions={[
+              key={peerId}
+              actions={onDisconnectPeer ? [
                 <Popconfirm
                   title="Disconnect?"
-                  description={`Are you sure you want to disconnect from ${conn.peer}?`}
-                  onConfirm={() => handleDisconnect(conn.peer)}
+                  description={`Are you sure you want to disconnect from ${peerId}?`}
+                  onConfirm={() => onDisconnectPeer(peerId)}
                   okText="Yes"
                   cancelText="No"
                 >
                   <Button type="text" danger icon={<CloseCircleOutlined />} />
                 </Popconfirm>
-              ]}
+              ] : undefined}
             >
               <List.Item.Meta
-                avatar={<WifiOutlined style={{ color: conn.open ? '#52c41a' : '#faad14' }} />}
+                avatar={<WifiOutlined style={{ color: '#52c41a' }} />}
                 title={
-                  <Tooltip title={conn.peer}>
+                  <Tooltip title={peerId}>
                     <Text style={{color: currentTheme === 'dark' ? 'white' : 'black'}} ellipsis={{tooltip: false}}>
-                      {conn.peer}
+                      {peerId}
                     </Text>
                   </Tooltip>
                 }
-                description={
-                  <Space size="small">
-                    <Tag color={conn.open ? "green" : "orange"}>{conn.open ? 'Open' : 'Connecting...'}</Tag>
-                    {conn.metadata?.sourcePeerId && <Text type="secondary" style={{fontSize: '12px'}}>(Initiator: {conn.metadata.sourcePeerId === localPeerId ? 'You' : 'Peer'})</Text>}
-                  </Space>
-                }
               />
-            </List.Item.Meta>
-          </List.Item>
-        )}
-      />
+            </List.Item>
+          )}
+        />
       </Space>
     </Card>
   );
