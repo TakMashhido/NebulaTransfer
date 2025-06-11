@@ -25,7 +25,7 @@ const MainHeader: React.FC = () => {
       }}
     >
       <Title level={3} style={{ color: currentTheme === 'dark' ? 'white' : 'black', margin: 0 }}>
-        P2P File Transfer
+        NebulaTransfer
       </Title>
       <Switch
         checkedChildren={<SunOutlined />}
