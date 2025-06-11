@@ -40,6 +40,14 @@ export const setFileStart = (id: string, start: number) => ({
     type: ConnectionActionType.RECEIVED_FILE_START, id, start
 })
 
+export const updateReceivedFileStats = (id: string, averageSpeed: number, totalTime: number) => ({
+    type: ConnectionActionType.RECEIVED_FILE_STATS_UPDATE, id, averageSpeed, totalTime
+});
+
+export const clearReceivedFiles = () => ({
+    type: ConnectionActionType.CLEAR_RECEIVED_FILES
+});
+
 export const connectPeer: (id: string) => (dispatch: Dispatch, getState: () => any) => Promise<void>
     = (id: string) => (async (dispatch, getState) => {
     dispatch(setLoading(true))
@@ -88,8 +96,19 @@ export const connectPeer: (id: string) => (dispatch: Dispatch, getState: () => a
                 await cacheChunk(fileId, data.index, data.chunk)
                 dispatch(updateFileProgress(fileId, data.index + 1))
             } else if (data.dataType === DataType.FILE_COMPLETE) {
-                const fileId = `${id}-${data.fileName}`
-                dispatch(markFileReady(fileId))
+                const fileId = `${id}-${data.fileName}`;
+                const { receivedFiles } = getState().connection; // Get current received files
+                const file = receivedFiles.find((f: ReceivedFile) => f.id === fileId);
+
+                if (file && file.startTime && file.size) {
+                    const endTime = Date.now();
+                    const totalTimeInSeconds = (endTime - file.startTime) / 1000;
+                    const averageSpeed = totalTimeInSeconds > 0 ? file.size / totalTimeInSeconds : file.size; // Avoid division by zero
+                    dispatch(updateReceivedFileStats(fileId, averageSpeed, totalTimeInSeconds));
+                } else {
+                    // Fallback if startTime or size isn't available for some reason, just mark ready
+                    dispatch(markFileReady(fileId));
+                }
             } else if (data.dataType === DataType.FILE && data.file) {
                 const fileId = `${id}-${data.fileName}`
                 const received: ReceivedFile = {
