@@ -1,26 +1,37 @@
-import React, {createContext, useContext, useState, useEffect} from 'react';
+import React, {createContext, useContext} from 'react'; // Removed useState, useEffect
 import {ConfigProvider, theme as antdTheme} from 'antd';
+import { useSelector } from 'react-redux'; // Import useSelector
+import { RootState } from '../store'; // Adjust path if necessary, store/index.ts exports RootState
 
 interface ThemeContextProps {
   dark: boolean;
-  toggle: () => void;
+  toggle: () => void; // This toggle will be a placeholder
 }
 
 const ThemeContext = createContext<ThemeContextProps>({
-  dark: false,
-  toggle: () => {}
+  dark: false, // Default value, will be overridden by Redux state
+  toggle: () => {} // Placeholder
 });
 
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
-  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
+  // Get theme from Redux store
+  const currentTheme = useSelector((state: RootState) => state.theme.currentTheme);
+  const antdDark = currentTheme === 'dark';
 
-  const toggle = () => setDark((d) => !d);
+  // const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark'); // Removed
+  // const toggle = () => setDark((d) => !d); // Removed
+  // useEffect(() => { // Removed - localStorage sync is now in themeSlice.ts
+  //   localStorage.setItem('theme', dark ? 'dark' : 'light');
+  // }, [dark]);
 
-  useEffect(() => {
-    localStorage.setItem('theme', dark ? 'dark' : 'light');
-  }, [dark]);
+  const placeholderToggle = () => {
+    console.warn(
+      'ThemeContext toggle used from ThemeProvider is not connected to Redux. ' +
+      'Ensure theme changes are dispatched via Redux actions from components like ThemeToggle.'
+    );
+  };
 
   // Define the "Deep Blue & Aqua" palettes
   const darkPalette = {
@@ -48,22 +59,22 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({children})
   };
 
   const themeConfig = {
-    algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+    algorithm: antdDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm, // Use antdDark
     token: {
       fontFamily: 'Inter, sans-serif',
       borderRadiusLG: 12, // borderRadius for Cards
-      ...(dark ? darkPalette : lightPalette),
+      ...(antdDark ? darkPalette : lightPalette), // Use antdDark
     },
     // Example for component-specific tokens, if needed later:
     // components: {
     //   Card: {
-    //     colorBgContainer: dark ? 'rgba(26, 35, 126, 0.7)' : 'rgba(224, 247, 250, 0.7)',
+    //     colorBgContainer: antdDark ? 'rgba(26, 35, 126, 0.7)' : 'rgba(224, 247, 250, 0.7)',
     //   }
     // }
   };
 
   return (
-    <ThemeContext.Provider value={{dark, toggle}}>
+    <ThemeContext.Provider value={{dark: antdDark, toggle: placeholderToggle}}>
       <ConfigProvider theme={themeConfig}>
         {children}
       </ConfigProvider>
