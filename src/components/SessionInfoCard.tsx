@@ -19,9 +19,9 @@ const SessionInfoCard: React.FC<SessionInfoCardProps> = ({
   onStopSession,
   isSessionStarted,
 }) => {
-  const peerId = useSelector((state: RootState) => state.peer.peerId);
-  const isLoading = useSelector((state: RootState) => state.peer.isLoading);
-  const peerError = useSelector((state: RootState) => state.peer.error);
+  const peerId = useSelector((state: RootState) => state.peer.id);
+  const isLoading = useSelector((state: RootState) => state.peer.loading);
+  const peerError = undefined;
   const currentTheme = useAppSelector((state) => state.theme.currentTheme);
 
 
