@@ -3,7 +3,8 @@ import { Card, List, Tag, Typography, Empty, Button, Popconfirm, Menu, Tooltip, 
 } from 'antd';
 import { WifiOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, useAppSelector } from '../store/store';
+import { RootState } from '../store'; // Corrected path
+import { useAppSelector } from '../store/hooks'; // Corrected path
 import { addLog } from '../store/logSlice';
 import { Connection } from '../store/connectionsSlice'; // Keep this for the detailed list
 import * as connectionAction from "../store/connection/connectionActions";
