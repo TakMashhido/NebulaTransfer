@@ -8,6 +8,7 @@ export enum DataType {
     FILE_CHUNK = 'FILE_CHUNK',
     FILE_CHUNK_ACK = 'FILE_CHUNK_ACK',
     FILE_COMPLETE = 'FILE_COMPLETE',
+    FILE_COMPLETE_ACK = 'FILE_COMPLETE_ACK',
     FILE_REQUEST = 'FILE_REQUEST',
     PIN_ACCEPT = 'PIN_ACCEPT',
     PIN_REJECT = 'PIN_REJECT'
@@ -213,6 +214,19 @@ export const PeerConnection = {
         await PeerConnection.sendConnection(id, {
             dataType: DataType.FILE_COMPLETE,
             fileName: file.name
+        })
+
+        await new Promise<void>((resolve) => {
+            const conn = connectionMap.get(id)
+            if (!conn) {resolve(); return}
+            const handler = (receivedData: any) => {
+                const d = receivedData as Data
+                if (d.dataType === DataType.FILE_COMPLETE_ACK && d.fileName === file.name) {
+                    conn.off('data', handler)
+                    resolve()
+                }
+            }
+            conn.on('data', handler)
         })
     },
     onConnectionReceiveData: (id: string, callback: (f: Data) => void) => {
