@@ -8,6 +8,7 @@ import {ThemeProvider} from './theme/ThemeProvider';
 import 'antd/dist/reset.css';
 import './theme/glassmorphism.css'; // Import custom glassmorphism styles
 import './theme/animations.css'; // Import custom animation styles
+import './theme/responsive.css'; // Desktop layout tweaks
 
 const root = ReactDOM.createRoot(
     document.getElementById('root') as HTMLElement

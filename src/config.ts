@@ -1,6 +1,6 @@
 // src/config.ts
-// Increase max file size to 100GB (expressed in MB)
-export const MAX_FILE_SIZE_MB = 100 * 1024;
+// Maximum allowable file size in gigabytes
+export const MAX_FILE_SIZE_GB = 100;
 export const CHUNK_SIZE = 16 * 1024; // 16KB, a common chunk size
 
 // PeerJS server configuration (optional, defaults to PeerJS public cloud if not set)
