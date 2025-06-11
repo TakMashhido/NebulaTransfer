@@ -126,8 +126,15 @@ const SendFileCard: React.FC<SendFileCardProps> = ({
   };
 
   const renderStatus = () => {
-    if (sendLoading && sendProgress > 0) {
-      return <Progress percent={sendProgress} style={{ width: '100%' }} />;
+    if (sendLoading) {
+      return (
+        <>
+          <Progress percent={sendProgress} status="active" style={{ width: '100%' }} />
+          {sendInfoString && (
+            <Text type="secondary">{sendInfoString}</Text>
+          )}
+        </>
+      );
     }
     if (!sendLoading && averageSendSpeed !== null && totalSendTime !== null) {
       const successMessage = `File sent! Avg speed: ${formatSpeed(averageSendSpeed)}, Time: ${formatDuration(totalSendTime)}.`;
