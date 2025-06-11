@@ -6,6 +6,7 @@ export enum DataType {
     OTHER = 'OTHER',
     FILE_META = 'FILE_META',
     FILE_CHUNK = 'FILE_CHUNK',
+    FILE_CHUNK_ACK = 'FILE_CHUNK_ACK',
     FILE_COMPLETE = 'FILE_COMPLETE',
     FILE_REQUEST = 'FILE_REQUEST',
     PIN_ACCEPT = 'PIN_ACCEPT',
@@ -190,6 +191,18 @@ export const PeerConnection = {
                 total,
                 fileName: file.name,
                 fileType: file.type
+            })
+            await new Promise<void>((resolve) => {
+                const conn = connectionMap.get(id)
+                if (!conn) {resolve(); return}
+                const handler = (receivedData: any) => {
+                    const d = receivedData as Data
+                    if (d.dataType === DataType.FILE_CHUNK_ACK && d.index === i) {
+                        conn.off('data', handler)
+                        resolve()
+                    }
+                }
+                conn.on('data', handler)
             })
             const sent = Math.min((i + 1) * chunkSize, file.size)
             const elapsed = (Date.now() - start) / 1000
