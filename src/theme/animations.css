@@ -1,0 +1,66 @@
+/* Subtle List Item Hover Effects */
+.ant-list-item:hover {
+    background-color: rgba(255, 255, 255, 0.05); /* Subtle highlight for dark mode */
+    transition: background-color 0.2s ease-in-out;
+}
+
+.ant-theme-light .ant-list-item:hover {
+    background-color: rgba(0, 0, 0, 0.03); /* Subtle highlight for light mode */
+}
+
+/* Menu Item Hover & Selected Effects */
+/* Note: Ant Design's Menu has its own complex styling for hover and selection.
+   Overriding these requires careful specificity and testing.
+   The colorPrimary token should ideally influence these, but direct override might be needed.
+*/
+
+.ant-menu-item:hover {
+    /* Intentionally not using !important here first, to see if antd respects it.
+       If not, and if the effect is desired, !important can be added.
+       The ThemeProvider's colorPrimary should influence hover/active states.
+       This custom background is for a more distinct hover if the default is too subtle.
+    */
+    background-color: rgba(255, 255, 255, 0.08);
+    transition: background-color 0.2s ease-in-out;
+}
+
+.ant-theme-light .ant-menu-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Selected Menu Item Background (colorPrimary from theme token should ideally handle this) */
+/* These are more aggressive overrides if the token propagation isn't sufficient or desired look is different.
+   Using a slightly more transparent version of the example accent colors.
+   Dark Mode Accent: Electric Blue (#2979FF)
+   Light Mode Accent: Bright Aqua/Cyan (#00BCD4)
+*/
+.ant-menu-item-selected {
+    /* background-color: rgba(41, 121, 255, 0.25) !important; */ /* Accent color with alpha for selection (Dark) */
+    /* Antd default selected bg for dark is usually related to colorPrimary. If this is too strong, adjust alpha or remove. */
+}
+
+.ant-theme-light .ant-menu-item-selected {
+    /* background-color: rgba(0, 188, 212, 0.2) !important; */ /* Accent color with alpha for selection (Light) */
+}
+
+
+/* Subtle Card Entry Animation (Optional) */
+.ant-card {
+    animation: fadeInScale 0.4s ease-out forwards; /* Slightly longer duration */
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0.7; /* Start a bit more visible */
+        transform: scale(0.99); /* Scale slightly less */
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Ensure the animation doesn't run on every re-render if cards are dynamic */
+/* This might need JavaScript if cards are frequently added/removed.
+   For now, it will run on initial load and if the card component itself is mounted.
+*/

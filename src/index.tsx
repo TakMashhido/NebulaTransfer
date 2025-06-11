@@ -6,6 +6,8 @@ import {store} from "./store";
 import {Provider} from "react-redux";
 import {ThemeProvider} from './theme/ThemeProvider';
 import 'antd/dist/reset.css';
+import './theme/glassmorphism.css'; // Import custom glassmorphism styles
+import './theme/animations.css'; // Import custom animation styles
 
 const root = ReactDOM.createRoot(
     document.getElementById('root') as HTMLElement

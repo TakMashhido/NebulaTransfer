@@ -1,239 +1,231 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {Button, Card, Col, Input, Menu, MenuProps, message, Row, Space, Typography, Upload, UploadFile, Layout, List} from "antd";
-import {CopyOutlined, UploadOutlined} from "@ant-design/icons";
-import ThemeToggle from './theme/ThemeToggle';
-import {useAppDispatch, useAppSelector} from "./store/hooks";
-import {startPeer, stopPeerSession} from "./store/peer/peerActions";
-import * as connectionAction from "./store/connection/connectionActions"
-import {PeerConnection} from "./helpers/peer";
-import {assembleFile} from "./helpers/fileCache";
-import {useAsyncState} from "./helpers/hooks";
-import download from "js-file-download";
-import {ReceivedFile} from "./store/connection/connectionTypes";
-import {formatSpeed} from "./helpers/format";
-import { QRCodeSVG } from 'qrcode.react';
-import QrScanner from 'react-qr-scanner';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  Layout,
+  Row,
+  Col,
+  message,
+  UploadFile,
+  // Removed other Ant Design components that are now in child components
+} from 'antd';
+// QrScanner is now encapsulated within ConnectionCard, so it's not directly needed here unless there's a global modal instance.
+// For this refactor, assuming ConnectionCard handles its own QrScanner modal.
+// import QrScanner from 'react-qr-scanner';
 
-const {Title} = Typography
-type MenuItem = Required<MenuProps>['items'][number]
 
-function getItem(
-    label: React.ReactNode,
-    key: React.Key,
-    icon?: React.ReactNode,
-    children?: MenuItem[],
-    type?: 'group',
-): MenuItem {
-    return {
-        key,
-        icon,
-        children,
-        label,
-        type,
-    } as MenuItem;
-}
+import { useAppDispatch, useAppSelector } from "./store/hooks";
+import { startPeer, stopPeerSession } from "./store/peer/peerActions";
+import * as connectionAction from "./store/connection/connectionActions";
+import { PeerConnection } from "./helpers/peer"; // Used for handleStopSession, handleUpload
+import { assembleFile } from "./helpers/fileCache"; // Used for handleDownload (now in ReceivedFilesCard)
+import { useAsyncState } from "./helpers/hooks"; // For fileList, sendLoading
+import download from "js-file-download"; // Used for handleDownload (now in ReceivedFilesCard)
+import { ReceivedFile } from "./store/connection/connectionTypes"; // Type for handleDownload (now in ReceivedFilesCard)
+// formatSpeed might be used in SendFileCard or ReceivedFilesCard if they display speed directly.
+// import { formatSpeed } from "./helpers/format";
+
+// Import new components
+import MainHeader from './components/MainHeader';
+import MainFooter from './components/MainFooter';
+import SessionInfoCard from './components/SessionInfoCard';
+import ConnectionCard from './components/ConnectionCard';
+import ConnectionsListCard from './components/ConnectionsListCard';
+import SendFileCard from './components/SendFileCard';
+import ReceivedFilesCard from './components/ReceivedFilesCard';
+// LogViewer is not part of this refactor scope based on the prompt, but if it were, it'd be imported.
+// import { LogViewer } from './components/LogViewer';
+
+const { Content } = Layout; // Layout.Content is still used
 
 export const App: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const peerStoreState = useAppSelector((state) => state.peer); // For peer.started, peer.id, peer.loading
+  const connectionStoreState = useAppSelector((state) => state.connection); // For connection.id, connection.loading, connection.list, connection.selectedId
 
-    const peer = useAppSelector((state) => state.peer)
-    const connection = useAppSelector((state) => state.connection)
-    const receivedFiles = connection.receivedFiles
-    const dispatch = useAppDispatch()
-    const [scanOpen, setScanOpen] = useState(false)
+  // App-level state that needs to be passed down or affects multiple components
+  const [fileList, setFileList] = useAsyncState<UploadFile[]>([]);
+  const [sendLoading, setSendLoading] = useAsyncState<boolean>(false);
+  const [sendInfo, setSendInfo] = useState<{ sent: number, total: number, speed: number, remaining: number } | null>(null);
+  const [sendProgress, setSendProgress] = useState(0); // For SendFileCard visual
 
-    const handleStartSession = () => {
-        dispatch(startPeer())
+  // QR Scanner state is now managed within ConnectionCard.tsx
+  // const [scanOpen, setScanOpen] = useState(false);
+
+  const downloadedRef = useRef<Set<string>>(new Set()); // Remains for handling download side effects
+
+  // Peer session handlers remain in App.tsx as they manage the core PeerConnection object
+  const handleStartSession = () => {
+    dispatch(startPeer());
+  };
+
+  const handleStopSession = async () => {
+    await PeerConnection.closePeerSession(); // This likely interacts with PeerJS object directly
+    dispatch(stopPeerSession());
+    // Reset app-level states related to connections/sending if necessary
+    setFileList([]);
+    setSendLoading(false);
+    setSendInfo(null);
+    setSendProgress(0);
+    // Selected connection ID might also need reset if active connection is closed
+    // dispatch(connectionAction.selectItem(null)); // Or however selection is cleared
+  };
+
+  // Connection handler remains in App.tsx
+  const handleConnectOtherPeer = (targetId?: string) => {
+    const idToConnect = targetId ?? connectionStoreState.id; // id from connection input field
+    if (idToConnect) {
+      dispatch(connectionAction.connectPeer(idToConnect));
+    } else {
+      message.warning("Please enter a Peer ID to connect.");
     }
+  };
 
-    const handleStopSession = async () => {
-        await PeerConnection.closePeerSession()
-        dispatch(stopPeerSession())
+  // File upload handler remains in App.tsx as it uses PeerConnection
+  const handleUpload = async (selectedTargetId: string) => {
+    if (fileList.length === 0) {
+      message.warning("Please select a file to send.");
+      return;
     }
-
-    const handleConnectOtherPeer = (targetId?: string) => {
-        const id = targetId ?? connection.id
-        id ? dispatch(connectionAction.connectPeer(id)) : message.warning("Please enter ID")
+    if (!selectedTargetId) { // Changed from connection.selectedId to use passed prop
+      message.warning("Please select a connection to send the file to.");
+      return;
     }
+    try {
+      await setSendLoading(true);
+      setSendProgress(0); // Reset progress before new send
+      let file = fileList[0] as unknown as File; // Assuming single file upload
 
-    const [fileList, setFileList] = useAsyncState([] as UploadFile[])
-    const [sendLoading, setSendLoading] = useAsyncState(false)
-    const [sendInfo, setSendInfo] = useState<{sent:number,total:number,speed:number,remaining:number} | null>(null)
-    const downloadedRef = useRef<Set<string>>(new Set())
+      await PeerConnection.sendFileWithPin(selectedTargetId, file, (sent, total, speed, remaining) => {
+        setSendInfo({ sent, total, speed, remaining });
+        setSendProgress(Math.round((sent / total) * 100));
+      });
 
-    const handleUpload = async () => {
-        if (fileList.length === 0) {
-            message.warning("Please select file")
-            return
-        }
-        if (!connection.selectedId) {
-            message.warning("Please select a connection")
-            return
-        }
-        try {
-            await setSendLoading(true);
-            let file = fileList[0] as unknown as File;
-            await PeerConnection.sendFileWithPin(connection.selectedId, file, (sent, total, speed, remaining) => {
-                setSendInfo({sent, total, speed, remaining})
-            })
-            await setSendLoading(false)
-            message.info("Send file successfully")
-        } catch (err: any) {
-            await setSendLoading(false)
-            console.log(err)
-            message.error(err?.message || "Error when sending file")
-        }
+      await setSendLoading(false);
+      setSendInfo(null); // Clear info after success
+      setFileList([]); // Clear file list
+      message.success("File sent successfully!");
+    } catch (err: any) {
+      await setSendLoading(false);
+      console.error("Error sending file:", err);
+      message.error(err?.message || "Error when sending file.");
+      // Update sendInfo to show error in the card
+      setSendInfo({sent:0, total:0, speed:0, remaining:0}); // Or a specific error structure
+      // Consider adding an error message to sendInfo state for display in SendFileCard
     }
+  };
 
-    const handleDownload = async (file: ReceivedFile) => {
-        const blob = await assembleFile(file.id, file.chunks, file.fileType)
-        download(blob, file.fileName, file.fileType)
-    }
+  // Effect for handling received files and triggering downloads (now managed by ReceivedFilesCard)
+  // This logic is moved to ReceivedFilesCard.tsx
+  // useEffect(() => {
+  //   connectionStoreState.receivedFiles.forEach(f => {
+  //     if (f.ready && !downloadedRef.current.has(f.id)) {
+  //       downloadedRef.current.add(f.id);
+  //       // const handleDownload = async (file: ReceivedFile) => { ... } moved
+  //       // handleDownload(f);
+  //     }
+  //   })
+  // }, [connectionStoreState.receivedFiles]);
 
-    useEffect(() => {
-        receivedFiles.forEach(f => {
-            if (f.ready && !downloadedRef.current.has(f.id)) {
-                downloadedRef.current.add(f.id)
-                handleDownload(f)
-            }
-        })
-    }, [receivedFiles])
+  // Callback for ConnectionCard to open QR scanner modal.
+  // This state is now internal to ConnectionCard.
+  // const openQrScanner = () => setScanOpen(true);
 
-    return (
-        <Layout style={{minHeight: '100vh', background: 'linear-gradient(135deg, #0f0c29, #302b63, #24243e)'}}>
-            <Layout.Header style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <Title level={3} style={{color: '#fff', margin: 0}}>NebulaTransfer</Title>
-                <ThemeToggle/>
-            </Layout.Header>
-            <Layout.Content style={{padding: 24}}>
-                <Row justify={"center"} align={"top"}>
-                    <Col xs={24} sm={24} md={20} lg={16} xl={12}>
-                        <Card style={{borderRadius:16, background:'rgba(255,255,255,0.1)', backdropFilter:'blur(10px)', border:'1px solid rgba(255,255,255,0.2)'}}>
-                            <Title level={2} style={{textAlign: "center"}}>NebulaTransfer</Title>
-                        <Card hidden={peer.started} style={{marginTop:16, borderRadius:12}}>
-                            <Space direction="vertical">
-                                <Button onClick={handleStartSession} loading={peer.loading}>Start</Button>
-                            </Space>
-                        </Card>
-                        <Card hidden={!peer.started} style={{marginTop:16, borderRadius:12}}>
-                            <Space direction="vertical">
-                                <Space direction="horizontal">
-                                    <div>ID: {peer.id}</div>
-                                    <Button icon={<CopyOutlined/>} onClick={async () => {
-                                        await navigator.clipboard.writeText(peer.id || "")
-                                        message.info("Copied: " + peer.id)
-                                    }}/>
-                                    <Button danger onClick={handleStopSession}>Stop</Button>
-                                </Space>
-                                <QRCodeSVG value={peer.id || ''} size={128} />
-                            </Space>
-                        </Card>
-                        <div hidden={!peer.started}>
-                            <Card style={{marginTop:16, borderRadius:12}}>
-                                <Space direction="horizontal">
-                                    <Input placeholder={"ID"}
-                                           onChange={e => dispatch(connectionAction.changeConnectionInput(e.target.value))}
-                                           required={true}
-                                           />
-                                    <Button onClick={() => handleConnectOtherPeer()}
-                                            loading={connection.loading}>Connect</Button>
-                                    <Button onClick={() => setScanOpen(true)}>Scan</Button>
-                                </Space>
-                                {scanOpen && (
-                                    <div style={{marginTop: 16}}>
-                                        <QrScanner
-                                            delay={300}
-                                            facingMode="front"
-                                            onError={() => setScanOpen(false)}
-                                            onScan={(data: any) => {
-                                                if (data) {
-                                                    const scanned = data.text
-                                                    dispatch(connectionAction.changeConnectionInput(scanned))
-                                                    setScanOpen(false)
-                                                    handleConnectOtherPeer(scanned)
-                                                }
-                                            }}
-                                            style={{width: '100%'}}
-                                        />
-                                    </div>
-                                )}
-                            </Card>
+  // Callback for ConnectionCard's QrScanner onScan result.
+  // This logic is now internal to ConnectionCard.
+  // const onQrScanResult = (data: any) => { ... }
 
-                            <Card title="Connection" style={{marginTop:16, borderRadius:12}}>
-                                {
-                                    connection.list.length === 0
-                                        ? <div>Waiting for connection ...</div>
-                                        : <div>
-                                            Select a connection
-                                            <Menu selectedKeys={connection.selectedId ? [connection.selectedId] : []}
-                                                  onSelect={(item) => dispatch(connectionAction.selectItem(item.key))}
-                                                  items={connection.list.map(e => getItem(e, e, null))}/>
-                                        </div>
-                                }
 
-                            </Card>
-                            <Card title="Send File" style={{marginTop:16, borderRadius:12}}>
-                                <Upload fileList={fileList}
-                                        maxCount={1}
-                                        onRemove={() => setFileList([])}
-                                        beforeUpload={(file) => {
-                                            setFileList([file])
-                                            return false
-                                        }}>
-                                    <Button icon={<UploadOutlined/>}>Select File</Button>
-                                </Upload>
-                                <Button
-                                    type="primary"
-                                    onClick={handleUpload}
-                                    disabled={fileList.length === 0}
-                                    loading={sendLoading}
-                                    style={{marginTop: 16}}
-                                >
-                                {sendLoading ? 'Sending' : 'Send'}
-                                </Button>
-                                {sendInfo &&
-                                    <div style={{marginTop: 8}}>
-                                        <progress max={sendInfo.total} value={sendInfo.sent} style={{width:'100%'}}></progress>
-                                        <div style={{fontSize:12,marginTop:4}}>Speed: {formatSpeed(sendInfo.speed)}, Remaining: {sendInfo.remaining.toFixed(1)}s</div>
-                                    </div>
-                                }
-                            </Card>
-                            <Card title="Received Files" style={{marginTop:16, borderRadius:12}}>
-                                {
-                                    receivedFiles.length === 0
-                                        ? <div>No file received</div>
-                                        : <List
-                                            dataSource={receivedFiles}
-                                            renderItem={(item: ReceivedFile) => (
-                                                <List.Item>
-                                                    <List.Item.Meta
-                                                        title={item.fileName}
-                                                        description={`from ${item.from}`}
-                                                    />
-                                                    {!item.ready && <div style={{width: '100%'}}>
-                                                        <progress max={item.chunks} value={item.received} style={{width:'100%'}}></progress>
-                                                        {item.startTime && <div style={{fontSize:12,marginTop:4}}>
-                                                            {(() => {
-                                                                const progressBytes = (item.received / item.chunks) * item.size;
-                                                                const elapsed = (Date.now() - item.startTime!) / 1000;
-                                                                const speed = progressBytes / (elapsed || 1);
-                                                                const remaining = (item.size - progressBytes) / (speed || 1);
-                                                                return `Speed: ${formatSpeed(speed)}, Remaining: ${remaining.toFixed(1)}s`;
-                                                            })()}
-                                                        </div>}
-                                                    </div>}
-                                                </List.Item>
-                                            )}
-                                        />
-                                }
-                            </Card>
-                        </div>
-                    </Card>
-                </Col>
-            </Row>
-            </Layout.Content>
-            <Layout.Footer style={{textAlign: 'center'}}>Developed by Koustav Kumar Mondal</Layout.Footer>
-        </Layout>
-    )
-}
+  return (
+    <Layout style={{ minHeight: '100vh' }}> {/* Removed hardcoded background */}
+      <MainHeader />
+      <Content style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+        {/* NebulaTransfer Title Card - can be a simple Typography.Title or its own component if complex */}
+        <Row justify="center" style={{ marginBottom: 24 }}>
+            <Col>
+                {/* Removed the outer Card, title can be part of MainHeader or a specific Title component if needed */}
+                {/* <Typography.Title level={2} style={{ textAlign: "center", color: "white" }}>NebulaTransfer</Typography.Title> */}
+            </Col>
+        </Row>
+        <Row gutter={[16, 16]} justify="center">
+          <Col xs={24} sm={24} md={8}>
+            <SessionInfoCard
+              // Props passed to SessionInfoCard
+              // peerId={peerStoreState.id} // Handled by SessionInfoCard's useSelector
+              // isLoading={peerStoreState.loading} // Handled by SessionInfoCard's useSelector
+              // error={null} // Assuming peer store has an error field, handled by SessionInfoCard's useSelector
+              onStartSession={handleStartSession} // Pass the handler
+              onStopSession={handleStopSession} // Pass the handler
+              // qrCodeValue={peerStoreState.id || ''} // Handled by SessionInfoCard's useSelector
+              isSessionStarted={peerStoreState.started}
+            />
+            {peerStoreState.started && (
+              <>
+                <ConnectionCard
+                  // Props for ConnectionCard
+                  // connectionLoading={connectionStoreState.loading} // Handled by ConnectionCard's useSelector or internal state
+                  onConnect={handleConnectOtherPeer} // Pass the handler
+                  // scanOpen={scanOpen} // Managed internally by ConnectionCard
+                  // setScanOpen={setScanOpen} // Managed internally by ConnectionCard
+                  // onQrScanResult={onQrScanResult} // Managed internally by ConnectionCard
+                  // currentConnectionIdInput={connectionStoreState.id} // Pass if ConnectionCard needs to prefill from Redux
+                  // onChangeConnectionInput={(id) => dispatch(connectionAction.changeConnectionInput(id))} // Pass if input is controlled by Redux via App
+                />
+                <ConnectionsListCard
+                  // Props for ConnectionsListCard
+                  // connections={connectionStoreState.list} // Handled by ConnectionsListCard's useSelector
+                  // selectedConnectionId={connectionStoreState.selectedId} // Handled by ConnectionsListCard's useSelector
+                  // onSelectConnection={(key) => dispatch(connectionAction.selectItem(key))} // Handled by ConnectionsListCard's useSelector + dispatch
+                  // onDisconnectPeer is more complex, might need PeerConnection instance or specific dispatch
+                />
+              </>
+            )}
+          </Col>
 
-export default App
+          {peerStoreState.started && connectionStoreState.list.length > 0 && (
+            <Col xs={24} sm={24} md={8}>
+              <SendFileCard
+                // Props for SendFileCard
+                fileList={fileList}
+                setFileList={setFileList}
+                onUpload={handleUpload} // Renamed prop for clarity
+                sendLoading={sendLoading}
+                sendProgress={sendProgress} // Pass progress state
+                // sendInfo={sendInfo ? `Speed: ${formatSpeed(sendInfo.speed)}, Remaining: ${sendInfo.remaining.toFixed(1)}s` : null} // Format info here or in card
+                sendInfoString={sendInfo ? `Sent: ${(sendInfo.sent / (1024*1024)).toFixed(2)}MB / ${(sendInfo.total / (1024*1024)).toFixed(2)}MB | Speed: ${sendInfo.speed > 0 ? sendInfo.speed + ' MB/s' : 'Calculating...'} | ETA: ${sendInfo.remaining > 0 ? sendInfo.remaining.toFixed(1) + 's' : '-'}` : null}
+                // connections={connectionStoreState.list} // Handled by SendFileCard's useSelector
+                // selectedConnectionId={connectionStoreState.selectedId} // Pass if used for targeting send
+                // onSelectConnectionTarget={(id) => dispatch(connectionAction.selectItem(id))} // Or manage target selection locally in SendFileCard
+                // For this refactor, assuming SendFileCard might have its own target selection if needed,
+                // or App.tsx passes down the currently selected connection ID from connectionStoreState.selectedId
+                // For simplicity, handleUpload now takes the targetID.
+                // SendFileCard will need a way to select this targetID from available connections.
+                // This was not explicitly in the original SendFileCard. Adding a simple selector.
+                 activeConnections={connectionStoreState.list.filter(c => PeerConnection.isConnected(c))} // Pass only connected peers
+                 // selectedTargetId={connectionStoreState.selectedId} // Pass the globally selected connection
+                 // setSelectedTargetId={(id) => dispatch(connectionAction.selectItem(id))}
+              />
+              <ReceivedFilesCard
+                // Props for ReceivedFilesCard
+                // receivedFiles={connectionStoreState.receivedFiles} // Handled by ReceivedFilesCard's useSelector
+                // onDownloadFile={handleDownload} // This logic is now encapsulated in ReceivedFilesCard
+                // downloadedRef is for App.tsx's useEffect, not directly for the card.
+              />
+            </Col>
+          )}
+
+          {/* LogViewer could be a third column or below, depending on layout preference */}
+          {/* For now, keeping a similar 3-column structure if all cards are active */}
+           {peerStoreState.started && (
+            <Col xs={24} sm={24} md={8}>
+              {/* Placeholder for LogViewer if it's a separate component */}
+              {/* <LogViewer /> */}
+            </Col>
+           )}
+
+        </Row>
+      </Content>
+      <MainFooter />
+    </Layout>
+  );
+};
+
+export default App;
