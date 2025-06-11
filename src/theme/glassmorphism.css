@@ -1,0 +1,52 @@
+/* In Dark Mode */
+.ant-theme-dark .ant-card {
+    background: rgba(26, 35, 126, 0.7) !important; /* Dark Navy/Slate Blue from palette */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); /* For Safari */
+    border: 1px solid rgba(179, 229, 252, 0.2); /* Light Aqua/Pastel Blue border, subtle */
+    /* borderRadius will be handled by token.borderRadiusLG in ThemeProvider */
+}
+
+/* In Light Mode */
+.ant-theme-light .ant-card {
+    background: rgba(224, 247, 250, 0.7) !important; /* Very Light Aqua/Blue from palette */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); /* For Safari */
+    border: 1px solid rgba(13, 71, 161, 0.2); /* Deep Blue border, subtle */
+    /* borderRadius will be handled by token.borderRadiusLG in ThemeProvider */
+}
+
+/* Ensure that nested cards or cards with explicit background (like some antd components might have) also get the effect */
+/* This might be overly broad, adjust if specific cards should not be glassmorphic */
+.ant-theme-dark .ant-card .ant-card-body,
+.ant-theme-light .ant-card .ant-card-body {
+    /* Usually, card body is transparent by default or inherits. If it has its own opaque bg, make it transparent */
+    /* background: transparent !important; */ /* This might not be needed if card background is correctly applied */
+}
+
+/* Specificity for antd components if they have their own background overrides */
+/* For example, Modal content often has its own background */
+.ant-theme-dark .ant-modal-content {
+    background: rgba(26, 35, 126, 0.7) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(179, 229, 252, 0.2);
+}
+
+.ant-theme-light .ant-modal-content {
+    background: rgba(224, 247, 250, 0.7) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(13, 71, 161, 0.2);
+}
+
+/* Adjust QR Code background if it's part of a card and needs to be non-transparent for scannability */
+/* This is already handled in SessionInfoCard.tsx by setting bgColor and fgColor directly on QRCodeSVG */
+/*
+.ant-theme-dark .ant-card .qr-code-container-class {
+    background: #141414 !important; // A solid, dark background for QR code
+}
+.ant-theme-light .ant-card .qr-code-container-class {
+    background: #FFFFFF !important; // A solid, light background for QR code
+}
+*/

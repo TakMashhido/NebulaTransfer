@@ -7,7 +7,9 @@ export enum ConnectionActionType {
     RECEIVED_FILE_ADD = 'RECEIVED_FILE_ADD',
     RECEIVED_FILE_PROGRESS = 'RECEIVED_FILE_PROGRESS',
     RECEIVED_FILE_READY = 'RECEIVED_FILE_READY',
-    RECEIVED_FILE_START = 'RECEIVED_FILE_START'
+    RECEIVED_FILE_START = 'RECEIVED_FILE_START',
+    RECEIVED_FILE_STATS_UPDATE = 'RECEIVED_FILE_STATS_UPDATE', // New action type
+    CLEAR_RECEIVED_FILES = 'CLEAR_RECEIVED_FILES' // Action to clear all received files
 }
 
 export interface ConnectionState {
@@ -28,4 +30,6 @@ export interface ReceivedFile {
     readonly received: number
     readonly ready: boolean
     readonly startTime?: number
+    readonly averageSpeed?: number // New field
+    readonly totalTime?: number    // New field
 }
