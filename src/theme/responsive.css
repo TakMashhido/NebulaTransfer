@@ -1,6 +1,6 @@
 @media (min-width: 992px) {
   .desktop-col {
-    flex: 0 0 360px;
-    max-width: 360px;
+    flex: 1 1 360px; /* allow columns to grow while keeping a sensible base width */
+    min-width: 360px; /* prevent cards from getting too narrow on large displays */
   }
 }
