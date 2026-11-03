@@ -4,7 +4,7 @@ Send files straight from one browser to another. No uploads, no accounts, no siz
 bucket in between. Open the app on two devices, link them with a short ID, a link or a QR code, and
 drop your files in.
 
-**Live:** [takmashhido.github.io/NebulaTransfer](https://takmashhido.github.io/NebulaTransfer)
+**Live:** [koustav.isroot.in/NebulaTransfer](https://koustav.isroot.in/NebulaTransfer/)
 
 | Light | Dark |
 |---|---|
@@ -41,10 +41,19 @@ npm run dev        # http://localhost:5173
 | `npm run build` | Type-check and build to `dist/` |
 | `npm run preview` | Serve the production build locally |
 | `npm test` | Run the unit tests (Vitest) |
-| `npm run deploy` | Build and publish `dist/` to GitHub Pages |
+| `npm run deploy` | Build and publish `dist/` to the `gh-pages` branch by hand |
 
 To try it alone, open the app in two browser windows (or a normal and a private window) and connect
 one to the other's ID.
+
+### Deployment
+
+Every push to `main` runs `.github/workflows/deploy.yml`, which builds the app and publishes `dist/`
+to the `gh-pages` branch. GitHub Pages serves that branch at
+[koustav.isroot.in/NebulaTransfer](https://koustav.isroot.in/NebulaTransfer/): the custom domain
+comes from the portfolio site (`TakMashhido.github.io`), and project sites are served under it at
+`/<repo-name>/`. The Vite `base` is `/NebulaTransfer/` to match. Do not add a `CNAME` file to this
+repository, or it will stop being served under the portfolio domain.
 
 ### Using your own PeerJS server
 

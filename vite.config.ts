@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
-// The app is served from https://takmashhido.github.io/NebulaTransfer/ in production.
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/NebulaTransfer/' : '/',
+// Production lives at https://koustav.isroot.in/NebulaTransfer/ (GitHub Pages project site),
+// so built assets need the /NebulaTransfer/ prefix. The dev server stays at /.
+export default defineConfig(({ command, isPreview }) => ({
+  base: command === 'build' || isPreview ? '/NebulaTransfer/' : '/',
   plugins: [react()],
   build: { target: 'es2020', sourcemap: false },
   test: { environment: 'node' },
