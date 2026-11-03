@@ -6,6 +6,10 @@ drop your files in.
 
 **Live:** [koustav.isroot.in/NebulaTransfer](https://koustav.isroot.in/NebulaTransfer/)
 
+**How it works, in depth:** [Serverless file transfer in the browser, how NebulaTransfer sends files peer to peer](https://koustav.isroot.in/blog/serverless-file-transfer-webrtc/),
+a blog post with diagrams of the architecture, the WebRTC handshake, the transfer protocol, the sliding window and the
+transfer states.
+
 | Light | Dark |
 |---|---|
 | ![NebulaTransfer in light mode](docs/screenshot-light.png) | ![NebulaTransfer in dark mode](docs/screenshot-dark.png) |
@@ -100,5 +104,8 @@ src/
 - Both devices must keep the tab open until the transfer finishes. The app warns you before you
   close a tab mid-transfer.
 - The receiver needs enough free browser storage for the file. The app checks before accepting.
-- Some strict corporate or mobile networks block direct WebRTC connections. A TURN server would be
-  needed for those; you can add one through PeerJS's `config.iceServers` in `src/lib/config.ts`.
+- Some strict corporate or mobile networks block direct WebRTC connections. PeerJS's default
+  configuration already includes Google's STUN server and PeerJS's public TURN relays, so those
+  transfers fall back to a relay (still DTLS-encrypted; the relay cannot read the data). The free
+  relays are best-effort; for heavy use, add your own TURN server through PeerJS's `config.iceServers`
+  in `src/lib/config.ts`.
