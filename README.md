@@ -4,9 +4,9 @@ Send files straight from one browser to another. No uploads, no accounts, no siz
 bucket in between. Open the app on two devices, link them with a short ID, a link or a QR code, and
 drop your files in.
 
-**Live:** [koustav.isroot.in/NebulaTransfer](https://koustav.isroot.in/NebulaTransfer/)
+**Live:** [koustavmondal.com/NebulaTransfer](https://koustavmondal.com/NebulaTransfer/)
 
-**How it works, in depth:** [Serverless file transfer in the browser, how NebulaTransfer sends files peer to peer](https://koustav.isroot.in/blog/serverless-file-transfer-webrtc/),
+**How it works, in depth:** [Serverless file transfer in the browser, how NebulaTransfer sends files peer to peer](https://koustavmondal.com/blog/serverless-file-transfer-webrtc/),
 a blog post with diagrams of the architecture, the WebRTC handshake, the transfer protocol, the sliding window and the
 transfer states.
 
@@ -54,7 +54,7 @@ one to the other's ID.
 
 Every push to `main` runs `.github/workflows/deploy.yml`, which builds the app and publishes `dist/`
 to the `gh-pages` branch. GitHub Pages serves that branch at
-[koustav.isroot.in/NebulaTransfer](https://koustav.isroot.in/NebulaTransfer/): the custom domain
+[koustavmondal.com/NebulaTransfer](https://koustavmondal.com/NebulaTransfer/): the custom domain
 comes from the portfolio site (`TakMashhido.github.io`), and project sites are served under it at
 `/<repo-name>/`. The Vite `base` is `/NebulaTransfer/` to match. Do not add a `CNAME` file to this
 repository, or it will stop being served under the portfolio domain.
